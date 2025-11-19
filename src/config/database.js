@@ -36,11 +36,10 @@ const connectDB = async () => {
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
     console.error('💡 Make sure to set MONGO_URI environment variable');
-    
-    // Don't exit in production, allow server to start
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
+    // Do not exit the process on connection failure.
+    // Keep the API running so health checks and non-DB routes work.
+    // In production, upstream health checks will still reflect DB issues via dependent routes.
+    // Optionally, you could implement a retry here if desired.
   }
 };
 
