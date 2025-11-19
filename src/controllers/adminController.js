@@ -489,8 +489,18 @@ const createUser = async (req, res) => {
     const { name, email, roll_no, password, role } = req.body;
 
     // Validate required fields
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ msg: 'Please provide name, email, password, and role' });
+    if (!name || !password || !role) {
+      return res.status(400).json({ msg: 'Please provide name, password, and role' });
+    }
+
+    // Email is required for teachers and admins, optional for students
+    if ((role === 'teacher' || role === 'admin') && !email) {
+      return res.status(400).json({ msg: 'Email is required for teachers and administrators' });
+    }
+
+    // Roll number is required for students
+    if (role === 'student' && !roll_no) {
+      return res.status(400).json({ msg: 'Roll number is required for students' });
     }
 
     // Validate role
@@ -498,13 +508,15 @@ const createUser = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid role. Must be student, teacher, or admin' });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ 
-      email: email.toLowerCase() 
-    });
+    // Check if user already exists by email (if provided)
+    if (email) {
+      const existingUser = await User.findOne({ 
+        email: email.toLowerCase() 
+      });
 
-    if (existingUser) {
-      return res.status(400).json({ msg: 'User with this email already exists' });
+      if (existingUser) {
+        return res.status(400).json({ msg: 'User with this email already exists' });
+      }
     }
 
     // Check roll number if provided
@@ -523,7 +535,7 @@ const createUser = async (req, res) => {
     // Create user
     const user = new User({
       name,
-      email: email.toLowerCase(),
+      email: email ? email.toLowerCase() : undefined,
       roll_no: roll_no ? roll_no.toUpperCase() : undefined,
       password: hashedPassword,
       role
@@ -535,7 +547,12 @@ const createUser = async (req, res) => {
     if (role === 'student') {
       const student = new Student({
         user_id: user._id,
-        admission_date: new Date()
+        roll_number: user.roll_no || undefined,
+        admission_date: new Date(),
+        academic_info: {
+          current_year: 1,
+          academic_session: '2024-25'
+        }
       });
       await student.save();
     } else if (role === 'teacher') {

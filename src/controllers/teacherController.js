@@ -1,5 +1,8 @@
 const { Student, Teacher, Class, Subject, Attendance, Fine, Exam, ExamResult } = require('../models');
 const { logActivity } = require('./authController');
+const path = require('path');
+const fs = require('fs');
+const { User } = require('../models');
 
 // Teacher Dashboard
 const getDashboardData = async (req, res) => {
@@ -347,5 +350,115 @@ module.exports = {
   createExam,
   getMyExams,
   addExamResults,
-  getClassAttendanceSummary
+  getClassAttendanceSummary,
+  // New profile handlers
+  getMyProfile: async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id).select('-password');
+      const teacher = await Teacher.findOne({ user_id: req.user._id });
+
+      if (!user || !teacher) {
+        return res.status(404).json({ msg: 'Teacher profile not found' });
+      }
+
+      res.json({
+        user: {
+          name: user.name,
+          email: user.email,
+          roll_no: user.roll_no,
+          phone: user.phone || teacher.contact_info?.personal_phone || null,
+          date_of_birth: user.date_of_birth || null,
+          gender: user.gender || null,
+          address: user.address || null,
+          profile_picture: user.profile_picture || null
+        },
+        teacher: {
+          emp_id: teacher.emp_id || teacher.employee_id || user.roll_no,
+          designation: teacher.designation || null,
+          department: teacher.department || null,
+          joining_date: teacher.joining_date || null,
+          qualification: teacher.qualification || null,
+          experience_years: teacher.experience_years || 0,
+          blood_group: teacher.blood_group || null,
+          religion: teacher.religion || null,
+          caste: teacher.caste || null,
+          category: teacher.category || null,
+          aadhaar_number: teacher.aadhaar_number || null
+        }
+      });
+    } catch (error) {
+      console.error('Get teacher profile error:', error);
+      res.status(500).json({ msg: 'Server error' });
+    }
+  },
+
+  updateMyProfile: async (req, res) => {
+    try {
+      const {
+        name,
+        phone,
+        date_of_birth,
+        gender,
+        address,
+        designation,
+        department,
+        qualification,
+        experience_years,
+        blood_group,
+        religion,
+        caste,
+        category,
+        aadhaar_number
+      } = req.body;
+
+      const userUpdates = {};
+      if (name) userUpdates.name = name;
+      if (phone) userUpdates.phone = phone;
+      if (date_of_birth) userUpdates.date_of_birth = new Date(date_of_birth);
+      if (gender) userUpdates.gender = gender;
+      if (address && typeof address === 'object') userUpdates.address = address;
+
+      if (Object.keys(userUpdates).length) {
+        await User.findByIdAndUpdate(req.user._id, userUpdates, { new: true });
+      }
+
+      const teacherUpdates = {};
+      if (designation) teacherUpdates.designation = designation;
+      if (department) teacherUpdates.department = department;
+      if (qualification) teacherUpdates.qualification = qualification;
+      if (typeof experience_years !== 'undefined') teacherUpdates.experience_years = experience_years;
+      if (blood_group) teacherUpdates.blood_group = blood_group;
+      if (religion) teacherUpdates.religion = religion;
+      if (caste) teacherUpdates.caste = caste;
+      if (category) teacherUpdates.category = category;
+      if (aadhaar_number) teacherUpdates.aadhaar_number = aadhaar_number;
+
+      if (Object.keys(teacherUpdates).length) {
+        await Teacher.findOneAndUpdate({ user_id: req.user._id }, teacherUpdates, { new: true });
+      }
+
+      await logActivity(req.user._id, 'Updated teacher profile');
+      res.json({ msg: 'Profile updated successfully' });
+    } catch (error) {
+      console.error('Update teacher profile error:', error);
+      res.status(500).json({ msg: 'Server error' });
+    }
+  },
+
+  uploadProfilePhoto: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ msg: 'No file uploaded' });
+      }
+      const relativePath = path.join('uploads', 'teachers', req.file.filename).replace(/\\/g, '/');
+      const urlPath = `/${relativePath}`;
+
+      await User.findByIdAndUpdate(req.user._id, { profile_picture: urlPath });
+      await logActivity(req.user._id, 'Updated profile photo');
+      res.json({ msg: 'Photo uploaded successfully', profile_picture: urlPath });
+    } catch (error) {
+      console.error('Upload photo error:', error);
+      res.status(500).json({ msg: 'Server error' });
+    }
+  }
 };

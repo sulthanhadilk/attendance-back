@@ -15,16 +15,16 @@ setTimeout(async () => {
     const bcrypt = require('bcryptjs');
     const { User } = require('./models');
     
-    const existingAdmin = await User.findOne({ email: 'Sulusulthan230@gmail.com' });
+    const existingAdmin = await User.findOne({ email: 'sulusulthan230@gmail.com' });
     if (!existingAdmin) {
       const adminPassword = await bcrypt.hash('Sulu@123', 10);
       await User.create({
         name: 'System Administrator',
-        email: 'Sulusulthan230@gmail.com',
+        email: 'sulusulthan230@gmail.com',
         password: adminPassword,
         role: 'admin'
       });
-      console.log('🎉 Default admin user created: Sulusulthan230@gmail.com');
+      console.log('🎉 Default admin user created: sulusulthan230@gmail.com');
     } else {
       console.log('👤 Admin user already exists');
     }
@@ -35,18 +35,59 @@ setTimeout(async () => {
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://attendence-front.vercel.app',
-    'https://attendance-back-byl9.onrender.com'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://attendence-front.vercel.app',
+      'https://attendance-back-byl9.onrender.com',
+      /^https:\/\/.*\.vercel\.app$/,  // Allow all Vercel subdomains
+      /^https:\/\/.*\.onrender\.com$/  // Allow all Render subdomains
+    ];
+    
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') {
+        return allowed === origin;
+      }
+      return allowed.test(origin);
+    });
+    
+    console.log(`🌐 CORS Request from: ${origin} - ${isAllowed ? 'ALLOWED' : 'BLOCKED'}`);
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
+
+// Add preflight handling
+app.use((req, res, next) => {
+  console.log(`📝 ${req.method} ${req.path} from ${req.get('Origin') || 'unknown'}`);
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', req.get('Origin'));
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept');
+    res.header('Access-Control-Allow-Credentials', true);
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Static file serving for uploads (profile pictures, etc.)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Health check endpoint for Render (no auth required)
 app.get('/api/status', (req, res) => {

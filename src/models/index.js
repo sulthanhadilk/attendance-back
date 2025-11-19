@@ -72,23 +72,49 @@ const studentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Teacher Schema
+// Teacher Schema (expanded for profile support)
 const teacherSchema = new mongoose.Schema({
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    unique: true
   },
-  subjects: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subject'
-  }],
+  // Identification
+  emp_id: { type: String, trim: true, uppercase: true, sparse: true },
+  employee_id: { type: String, trim: true, uppercase: true, sparse: true },
+
+  // Professional
+  designation: { type: String, trim: true },
   department: {
     type: String,
     required: true,
     trim: true
   },
+  joining_date: { type: Date },
+
+  // Teaching
+  subjects: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject'
+  }],
+
+  // Qualifications & Experience (simplified)
+  qualification: { type: String, trim: true },
+  experience_years: { type: Number, default: 0 },
+
+  // Additional personal details not in User
+  blood_group: { type: String, trim: true },
+  religion: { type: String, trim: true },
+  caste: { type: String, trim: true },
+  category: { type: String, trim: true },
+  aadhaar_number: { type: String, trim: true },
+
   created_at: {
+    type: Date,
+    default: Date.now
+  },
+  updated_at: {
     type: Date,
     default: Date.now
   }

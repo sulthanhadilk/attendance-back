@@ -11,12 +11,13 @@ const studentSchema = new mongoose.Schema({
   class_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class',
-    required: true
+    required: false
   },
   roll_number: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
+    sparse: true,
     uppercase: true,
     trim: true
   },
@@ -32,7 +33,7 @@ const studentSchema = new mongoose.Schema({
   guardian_info: {
     father_name: {
       type: String,
-      required: true,
+      required: false,
       trim: true
     },
     mother_name: {
@@ -50,7 +51,7 @@ const studentSchema = new mongoose.Schema({
     },
     guardian_phone: {
       type: String,
-      required: true,
+      required: false,
       match: [/^\+?[\d\s-()]+$/, 'Please enter a valid phone number']
     },
     guardian_email: {
@@ -64,11 +65,13 @@ const studentSchema = new mongoose.Schema({
   academic_info: {
     current_year: {
       type: Number,
-      required: true
+      required: false,
+      default: 1
     },
     academic_session: {
       type: String,
-      required: true
+      required: false,
+      default: '2024-25'
     },
     previous_school: String,
     subjects: [{
