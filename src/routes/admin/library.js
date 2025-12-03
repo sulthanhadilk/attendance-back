@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const ctrl = require('../../controllers/admin/libraryController');
+
+router.get('/books', ctrl.listBooks);
+router.post('/books', ctrl.createBook);
+router.put('/books/:id', ctrl.updateBook);
+router.delete('/books/:id', ctrl.deleteBook);
+router.post('/issue', ctrl.issueBook);
+router.post('/return', ctrl.returnBook);
+
+module.exports = router;
