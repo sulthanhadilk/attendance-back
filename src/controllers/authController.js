@@ -1,8 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Student, Teacher, Admin, Log } = require('../models');
-
-// Generate JWT token with role and user info
 const generateToken = (user) => {
   return jwt.sign(
     { 
@@ -14,7 +12,6 @@ const generateToken = (user) => {
     { expiresIn: '7d' }
   );
 };
-
 // Log user activity
 const logActivity = async (userId, action) => {
   try {
@@ -23,7 +20,6 @@ const logActivity = async (userId, action) => {
     console.error('Log error:', error);
   }
 };
-
 /**
  * Universal Login Controller
  * Accepts identifier (email, staffCode, admissionNo, roll_no) + password
@@ -32,32 +28,24 @@ const logActivity = async (userId, action) => {
 const login = async (req, res) => {
   try {
     const { identifier, email, roll_no, password } = req.body;
-
-    // Support both 'identifier' and legacy 'email'/'roll_no' fields
     const searchValue = identifier || email || roll_no;
-
     if (!searchValue || !password) {
       return res.status(400).json({ 
         success: false,
         msg: 'Email/Roll No/Staff Code and password are required' 
       });
     }
-
     let user = null;
     let profileData = null;
-
     // Step 1: Try to find User by email or roll_no
     const searchLower = searchValue.toLowerCase();
     const searchUpper = searchValue.toUpperCase();
-
     // Check if it's an email format
     if (searchValue.includes('@')) {
       user = await User.findOne({ email: searchLower });
     } else {
       // Try roll_no (students)
       user = await User.findOne({ roll_no: searchUpper });
-      
-      // If not found by roll_no, search in Teacher by staffCode or employee_id
       if (!user) {
         const teacher = await Teacher.findOne({
           $or: [
@@ -65,14 +53,11 @@ const login = async (req, res) => {
             { employee_id: searchUpper }
           ]
         }).populate('user_id');
-        
         if (teacher && teacher.user_id) {
           user = teacher.user_id;
           profileData = { teacherId: teacher._id, staffCode: teacher.staffCode };
         }
       }
-      
-      // If not found by staffCode, search in Student by admissionNo or admission_number
       if (!user) {
         const student = await Student.findOne({
           $or: [
@@ -81,14 +66,12 @@ const login = async (req, res) => {
             { roll_number: searchUpper }
           ]
         }).populate('user_id');
-        
         if (student && student.user_id) {
           user = student.user_id;
           profileData = { studentId: student._id, admissionNo: student.admissionNo };
         }
       }
     }
-
     // Step 2: Validate user exists
     if (!user) {
       return res.status(401).json({ 
@@ -96,7 +79,6 @@ const login = async (req, res) => {
         msg: 'Invalid credentials. Please check your email/roll number and password.' 
       });
     }
-
     // Step 3: Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -105,7 +87,6 @@ const login = async (req, res) => {
         msg: 'Invalid credentials. Please check your email/roll number and password.' 
       });
     }
-
     // Step 4: Get role-specific profile data
     if (!profileData) {
       if (user.role === 'student') {
@@ -119,13 +100,9 @@ const login = async (req, res) => {
         profileData = { adminId: admin?._id };
       }
     }
-
-    // Step 5: Generate JWT token
     const token = generateToken(user);
-
     // Step 6: Log activity
     await logActivity(user._id, `User logged in (${user.role}) via ${searchValue}`);
-
     // Step 7: Return response
     res.json({
       success: true,
@@ -148,18 +125,14 @@ const login = async (req, res) => {
     });
   }
 };
-
 // Get current user profile
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
-    
     let profile = { 
       success: true,
       user 
     };
-
-    // Get additional profile data based on role
     if (user.role === 'student') {
       const student = await Student.findOne({ user_id: user._id })
         .populate('class_id', 'name section year')
@@ -174,7 +147,6 @@ const getProfile = async (req, res) => {
       const admin = await Admin.findOne({ user_id: user._id });
       profile.admin = admin;
     }
-
     res.json(profile);
   } catch (error) {
     console.error('Profile error:', error);
@@ -184,20 +156,17 @@ const getProfile = async (req, res) => {
     });
   }
 };
-
 // Logout (token invalidation handled client-side)
 const logout = (req, res) => {
   // Log activity before clearing session
   if (req.user) {
     logActivity(req.user._id, `User logged out (${req.user.role})`);
   }
-  
   res.json({ 
     success: true,
     msg: 'Logged out successfully' 
   });
 };
-
 // Status endpoint for deployment testing
 const getStatus = (req, res) => {
   res.json({ 
@@ -206,7 +175,6 @@ const getStatus = (req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 };
-
 module.exports = {
   login,
   getProfile,

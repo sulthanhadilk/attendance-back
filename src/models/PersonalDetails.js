@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const PersonalDetailsSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   dob: { type: Date },
@@ -13,5 +12,4 @@ const PersonalDetailsSchema = new mongoose.Schema({
   city: { type: String },
   pinCode: { type: String },
 });
-
 module.exports = mongoose.model('PersonalDetails', PersonalDetailsSchema);

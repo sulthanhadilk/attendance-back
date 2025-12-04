@@ -1,15 +1,12 @@
 const { Student, Attendance, Fine, Exam, ExamResult, User } = require('../models');
 const { GradeAnalyzer } = require('./aiServices');
-
 class ReportGenerator {
   static async generateStudentReport(studentId) {
     try {
       const student = await Student.findById(studentId)
         .populate('user_id', 'name roll_no')
         .populate('class_id', 'name section year');
-
       if (!student) return null;
-
       const [attendance, examResults, fines] = await Promise.all([
         Attendance.find({ student_id: studentId }).sort({ createdAt: -1 }),
         ExamResult.find({ student_id: studentId })
@@ -20,7 +17,6 @@ class ReportGenerator {
           }),
         Fine.find({ student_id: studentId })
       ]);
-
       const report = {
         student_info: {
           name: student.user_id.name,
@@ -33,30 +29,23 @@ class ReportGenerator {
         recommendations: this.generateActionableRecommendations(attendance, examResults, fines),
         report_date: new Date().toISOString()
       };
-
       return report;
     } catch (error) {
       console.error('Report generation error:', error);
       return null;
     }
   }
-
   static async generateAISummary(student, attendance, examResults, fines) {
     const attendanceRate = attendance.length > 0 
       ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100)
       : 0;
-
     const averageGrade = examResults.length > 0
       ? Math.round(examResults.reduce((sum, r) => sum + r.percentage, 0) / examResults.length)
       : 0;
-
     const unpaidFines = fines.filter(f => !f.is_paid).length;
     const totalFineAmount = fines.filter(f => !f.is_paid).reduce((sum, f) => sum + f.amount, 0);
-
-    // AI-generated narrative summary
     let summary = `${student.user_id.name} is a student in `;
     summary += `${student.class_id.name} ${student.class_id.section}. `;
-
     // Attendance analysis
     if (attendanceRate >= 90) {
       summary += `Their attendance is exemplary at ${attendanceRate}%, showing excellent commitment to their studies. `;
@@ -67,7 +56,6 @@ class ReportGenerator {
     } else {
       summary += `Attendance is concerning at only ${attendanceRate}%, requiring immediate attention. `;
     }
-
     // Academic performance
     if (examResults.length > 0) {
       if (averageGrade >= 85) {
@@ -79,7 +67,6 @@ class ReportGenerator {
       } else {
         summary += `Academic performance requires significant attention with an average of ${averageGrade}%. `;
       }
-
       // Subject-specific insights
       const subjectPerformance = this.analyzeSubjectPerformance(examResults);
       if (subjectPerformance.strongest) {
@@ -89,7 +76,6 @@ class ReportGenerator {
         summary += `${subjectPerformance.weakest.subject} appears to be challenging with an average of ${subjectPerformance.weakest.average}%. `;
       }
     }
-
     // Disciplinary record
     if (unpaidFines === 0 && fines.length === 0) {
       summary += `Their disciplinary record is clean with no fines or penalties. `;
@@ -98,7 +84,6 @@ class ReportGenerator {
     } else {
       summary += `There are ${unpaidFines} unpaid fine(s) totaling Rs. ${totalFineAmount} that need attention. `;
     }
-
     // Overall assessment
     const overallScore = this.calculateOverallScore(attendanceRate, averageGrade, unpaidFines);
     if (overallScore >= 85) {
@@ -110,13 +95,10 @@ class ReportGenerator {
     } else {
       summary += `Overall, ${student.user_id.name} requires immediate intervention and support to improve their academic journey.`;
     }
-
     return summary;
   }
-
   static analyzeSubjectPerformance(examResults) {
     const subjectMap = {};
-    
     examResults.forEach(result => {
       const subject = result.exam_id.subject_id.name;
       if (!subjectMap[subject]) {
@@ -125,36 +107,28 @@ class ReportGenerator {
       subjectMap[subject].total += result.percentage;
       subjectMap[subject].count += 1;
     });
-
     const subjects = Object.entries(subjectMap).map(([subject, data]) => ({
       subject,
       average: Math.round(data.total / data.count)
     }));
-
     if (subjects.length === 0) return {};
-
     return {
       strongest: subjects.reduce((max, curr) => curr.average > max.average ? curr : max),
       weakest: subjects.reduce((min, curr) => curr.average < min.average ? curr : min)
     };
   }
-
   static calculateOverallScore(attendanceRate, averageGrade, unpaidFines) {
     const attendanceScore = attendanceRate;
     const gradeScore = averageGrade;
     const disciplineScore = Math.max(100 - (unpaidFines * 10), 0);
-
     return Math.round((attendanceScore * 0.4 + gradeScore * 0.5 + disciplineScore * 0.1));
   }
-
   static generateActionableRecommendations(attendance, examResults, fines) {
     const recommendations = [];
-
     // Attendance recommendations
     const attendanceRate = attendance.length > 0 
       ? (attendance.filter(a => a.status === 'present').length / attendance.length) * 100
       : 0;
-
     if (attendanceRate < 75) {
       recommendations.push({
         category: 'Attendance',
@@ -171,12 +145,10 @@ class ReportGenerator {
         expected_outcome: 'Reach minimum 75% attendance rate'
       });
     }
-
     // Academic recommendations
     const averageGrade = examResults.length > 0
       ? examResults.reduce((sum, r) => sum + r.percentage, 0) / examResults.length
       : 0;
-
     if (averageGrade < 70) {
       recommendations.push({
         category: 'Academic Performance',
@@ -194,7 +166,6 @@ class ReportGenerator {
         expected_outcome: `Raise average grade to at least 70%`
       });
     }
-
     // Financial responsibility
     const unpaidFines = fines.filter(f => !f.is_paid);
     if (unpaidFines.length > 0) {
@@ -214,7 +185,6 @@ class ReportGenerator {
         expected_outcome: 'All fines cleared and clean disciplinary record'
       });
     }
-
     // Islamic values and character development
     recommendations.push({
       category: 'Character Development',
@@ -231,16 +201,12 @@ class ReportGenerator {
       timeline: 'Ongoing',
       expected_outcome: 'Balanced development of academic and spiritual growth'
     });
-
     return recommendations;
   }
-
-  // Generate batch reports for multiple students
   static async generateClassReport(classId) {
     try {
       const students = await Student.find({ class_id: classId })
         .populate('user_id', 'name roll_no');
-
       const reports = [];
       for (const student of students) {
         const report = await this.generateStudentReport(student._id);
@@ -248,7 +214,6 @@ class ReportGenerator {
           reports.push(report);
         }
       }
-
       return {
         class_id: classId,
         total_students: students.length,
@@ -261,8 +226,6 @@ class ReportGenerator {
       return null;
     }
   }
-
-  // Generate admin insights
   static async generateAdminInsights() {
     try {
       const [totalStudents, totalAttendance, totalFines, totalExams] = await Promise.all([
@@ -271,16 +234,12 @@ class ReportGenerator {
         Fine.countDocuments(),
         Exam.countDocuments()
       ]);
-
       // Get attendance trends
       const attendanceTrends = await this.getAttendanceTrends();
-      
       // Get fine patterns
       const finePatterns = await this.getFinePatterns();
-      
       // Get academic performance trends
       const performanceTrends = await this.getPerformanceTrends();
-
       return {
         overview: {
           total_students: totalStudents,
@@ -301,7 +260,6 @@ class ReportGenerator {
       return null;
     }
   }
-
   static async getAttendanceTrends() {
     // Implementation for attendance trend analysis
     return {
@@ -310,7 +268,6 @@ class ReportGenerator {
       insights: ["Attendance remains consistent across most classes", "Monday mornings show slightly lower attendance"]
     };
   }
-
   static async getFinePatterns() {
     // Implementation for fine pattern analysis
     return {
@@ -319,7 +276,6 @@ class ReportGenerator {
       insights: ["Most fines occur during first period", "Students struggle with punctuality after weekends"]
     };
   }
-
   static async getPerformanceTrends() {
     // Implementation for performance trend analysis
     return {
@@ -328,7 +284,6 @@ class ReportGenerator {
       insights: ["Overall grades showing upward trend", "STEM subjects need additional support"]
     };
   }
-
   static generateAdminRecommendations(attendance, fines, performance) {
     return [
       {
@@ -349,5 +304,4 @@ class ReportGenerator {
     ];
   }
 }
-
 module.exports = ReportGenerator;

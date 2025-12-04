@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const feePaymentSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -51,10 +50,8 @@ const feePaymentSchema = new mongoose.Schema({
     ref: 'Admin'
   }
 }, { timestamps: true });
-
 // Indexes for efficient queries
 feePaymentSchema.index({ studentId: 1, date: -1 });
 feePaymentSchema.index({ receiptNo: 1 });
 feePaymentSchema.index({ status: 1 });
-
 module.exports = mongoose.model('FeePayment', feePaymentSchema);

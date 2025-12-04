@@ -1,5 +1,4 @@
 const { AuditLog } = require('../models');
-
 /**
  * Audit Logger Middleware
  * Logs admin actions for compliance and tracking
@@ -8,7 +7,6 @@ const auditLogger = (action, entityType) => {
   return async (req, res, next) => {
     // Store original res.json
     const originalJson = res.json.bind(res);
-    
     // Override res.json to capture response
     res.json = function(data) {
       // Only log if successful (2xx status)
@@ -32,7 +30,6 @@ const auditLogger = (action, entityType) => {
                 userAgent: req.get('user-agent')
               }
             };
-
             await AuditLog.create(logData);
           } catch (error) {
             console.error('Audit logging failed:', error);
@@ -40,35 +37,27 @@ const auditLogger = (action, entityType) => {
           }
         });
       }
-      
       // Call original json
       return originalJson(data);
     };
-    
     next();
   };
 };
-
 /**
  * Sanitize request body to remove sensitive data
  */
 function sanitizeBody(body) {
   if (!body) return {};
-  
   const sanitized = { ...body };
-  
   // Remove sensitive fields
   const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'accessToken'];
-  
   for (const field of sensitiveFields) {
     if (sanitized[field]) {
       sanitized[field] = '[REDACTED]';
     }
   }
-  
   return sanitized;
 }
-
 /**
  * Quick audit log helper for manual logging
  */
@@ -86,7 +75,6 @@ const logAudit = async (userId, action, entityType, entityId, details = {}) => {
     console.error('Manual audit log failed:', error);
   }
 };
-
 module.exports = {
   auditLogger,
   logAudit

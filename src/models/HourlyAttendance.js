@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const hourlyAttendanceSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
@@ -9,7 +8,5 @@ const hourlyAttendanceSchema = new mongoose.Schema({
   status: { type: String, enum: ['present', 'absent', 'late', 'letoff', 'unmarked'], default: 'unmarked' },
   markedByTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
 }, { timestamps: true });
-
 hourlyAttendanceSchema.index({ studentId: 1, classId: 1, date: 1, hourIndex: 1 }, { unique: true });
-
 module.exports = mongoose.model('HourlyAttendance', hourlyAttendanceSchema);

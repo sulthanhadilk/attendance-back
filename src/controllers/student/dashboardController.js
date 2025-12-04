@@ -1,5 +1,4 @@
 const { Student, User, HourlyAttendance, PrayerAttendance, Class, Course, Department } = require('../../models');
-
 /**
  * GET /api/student/dashboard
  * Student dashboard with profile summary, today's schedule, stats
@@ -11,15 +10,12 @@ exports.getDashboard = async (req, res) => {
       .populate('class_id', 'name section semester batch')
       .populate('departmentId', 'name code')
       .populate('courseIds', 'name code type');
-
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student profile not found' });
     }
-
     // Get today's attendance count
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const [todayHourly, todayPrayer, totalHourly, presentHourly] = await Promise.all([
       HourlyAttendance.find({
         studentId: student._id,
@@ -32,11 +28,9 @@ exports.getDashboard = async (req, res) => {
       HourlyAttendance.countDocuments({ studentId: student._id }),
       HourlyAttendance.countDocuments({ studentId: student._id, status: 'present' })
     ]);
-
     const attendancePercentage = totalHourly > 0 
       ? Math.round((presentHourly / totalHourly) * 100) 
       : 0;
-
     res.json({
       success: true,
       student: {
@@ -64,7 +58,6 @@ exports.getDashboard = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error', error: error.message });
   }
 };
-
 /**
  * GET /api/student/profile
  * Get complete student profile
@@ -76,11 +69,9 @@ exports.getProfile = async (req, res) => {
       .populate('class_id', 'name section year semester batch')
       .populate('departmentId', 'name code')
       .populate('courseIds', 'name code type');
-
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student profile not found' });
     }
-
     res.json({
       success: true,
       student
@@ -90,7 +81,6 @@ exports.getProfile = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * PUT /api/student/profile
  * Update student profile (limited fields)
@@ -98,13 +88,10 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const { photoUrl, phone } = req.body;
-    
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     // Update allowed fields
     if (photoUrl) student.photoUrl = photoUrl;
     if (phone) {
@@ -112,9 +99,7 @@ exports.updateProfile = async (req, res) => {
       user.phone = phone;
       await user.save();
     }
-
     await student.save();
-
     res.json({
       success: true,
       msg: 'Profile updated successfully',
@@ -125,7 +110,6 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/idcard
  * Get virtual ID card data
@@ -136,11 +120,9 @@ exports.getIDCard = async (req, res) => {
       .populate('user_id', 'name email')
       .populate('class_id', 'name section')
       .populate('departmentId', 'name');
-
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const idCardData = {
       name: student.user_id.name,
       rollNo: student.roll_number || student.user_id.roll_no,
@@ -157,7 +139,6 @@ exports.getIDCard = async (req, res) => {
         admissionNo: student.admission_number
       })
     };
-
     res.json({
       success: true,
       idCard: idCardData
@@ -167,7 +148,6 @@ exports.getIDCard = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/departments
  * Get all departments
@@ -175,7 +155,6 @@ exports.getIDCard = async (req, res) => {
 exports.getDepartments = async (req, res) => {
   try {
     const departments = await Department.find().sort({ name: 1 });
-    
     res.json({
       success: true,
       departments
@@ -185,7 +164,6 @@ exports.getDepartments = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/courses
  * Get student's enrolled courses
@@ -194,11 +172,9 @@ exports.getCourses = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id })
       .populate('courseIds', 'name code type credits');
-
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     res.json({
       success: true,
       courses: student.courseIds || []
@@ -208,5 +184,4 @@ exports.getCourses = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 module.exports = exports;

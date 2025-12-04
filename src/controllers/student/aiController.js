@@ -1,5 +1,4 @@
 const { Student, AICache, HourlyAttendance, ExamResult, Fine, StudentConduct } = require('../../models');
-
 /**
  * GET /api/student/ai/risk
  * Get AI risk assessment (STUB - simplified logic)
@@ -7,14 +6,11 @@ const { Student, AICache, HourlyAttendance, ExamResult, Fine, StudentConduct } =
 exports.getRiskAssessment = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     // Check if cache exists and is fresh
     let cache = await AICache.findOne({ studentId: student._id });
-    
     if (!cache || cache.isStale(24)) {
       // Recalculate
       const [attendanceRecords, results, fines, conduct] = await Promise.all([
@@ -23,34 +19,27 @@ exports.getRiskAssessment = async (req, res) => {
         Fine.find({ student_id: student._id }),
         StudentConduct.find({ studentId: student._id })
       ]);
-
       // Calculate attendance percentage
       const totalClasses = attendanceRecords.length;
       const presentClasses = attendanceRecords.filter(r => r.status === 'present').length;
       const attendancePercentage = totalClasses > 0 
         ? Math.round((presentClasses / totalClasses) * 100) 
         : 100;
-
       // Calculate average marks
       const avgMarks = results.length > 0
         ? results.reduce((sum, r) => sum + (r.percentage || 0), 0) / results.length
         : 0;
-
       // Calculate risk scores
       const attendanceRisk = attendancePercentage < 75 ? (75 - attendancePercentage) * 2 : 0;
       const performanceRisk = avgMarks < 50 ? (50 - avgMarks) * 2 : 0;
       const conductRisk = conduct.length * 10; // 10 points per incident
-
       const overallRisk = Math.min(100, Math.round(
         (attendanceRisk * 0.4) + (performanceRisk * 0.4) + (conductRisk * 0.2)
       ));
-
       let riskCategory = 'low';
       if (overallRisk >= 75) riskCategory = 'critical';
       else if (overallRisk >= 50) riskCategory = 'high';
       else if (overallRisk >= 25) riskCategory = 'medium';
-
-      // Generate recommendations
       const recommendations = [];
       if (attendancePercentage < 75) {
         recommendations.push({
@@ -73,7 +62,6 @@ exports.getRiskAssessment = async (req, res) => {
           priority: 'medium'
         });
       }
-
       // Update or create cache
       if (cache) {
         cache.attendanceRiskScore = attendanceRisk;
@@ -109,7 +97,6 @@ exports.getRiskAssessment = async (req, res) => {
         });
       }
     }
-
     res.json({
       success: true,
       risk: {
@@ -126,7 +113,6 @@ exports.getRiskAssessment = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/ai/study-advice
  * Get AI study suggestions (STUB)
@@ -135,16 +121,13 @@ exports.getStudyAdvice = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id })
       .populate('courseIds', 'name type');
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const results = await ExamResult.find({
       studentId: student._id,
       published: true
     }).populate('courseId', 'name type').sort({ percentage: 1 }).limit(3);
-
     const suggestions = results.map(result => ({
       subject: result.courseId?.name || 'Unknown',
       percentage: result.percentage,
@@ -159,7 +142,6 @@ exports.getStudyAdvice = async (req, res) => {
         'Teacher Office Hours'
       ]
     }));
-
     res.json({
       success: true,
       weakSubjects: suggestions,
@@ -175,5 +157,4 @@ exports.getStudyAdvice = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 module.exports = exports;

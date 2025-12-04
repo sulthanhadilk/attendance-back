@@ -1,5 +1,4 @@
 const { Student, LibraryBook, LibraryIssue } = require('../../models');
-
 /**
  * GET /api/student/library/books
  * Get all available library books
@@ -7,7 +6,6 @@ const { Student, LibraryBook, LibraryIssue } = require('../../models');
 exports.getBooks = async (req, res) => {
   try {
     const { search, category } = req.query;
-    
     const query = {};
     if (search) {
       query.$or = [
@@ -17,9 +15,7 @@ exports.getBooks = async (req, res) => {
       ];
     }
     if (category) query.category = category;
-
     const books = await LibraryBook.find(query).sort({ title: 1 });
-
     res.json({
       success: true,
       books
@@ -29,7 +25,6 @@ exports.getBooks = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/library/my-issues
  * Get student's issued books
@@ -37,18 +32,14 @@ exports.getBooks = async (req, res) => {
 exports.getMyIssues = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const issues = await LibraryIssue.find({ studentId: student._id })
       .populate('bookId', 'title author isbn')
       .sort({ issuedAt: -1 });
-
     const activeIssues = issues.filter(i => i.status === 'issued');
     const overdueIssues = issues.filter(i => i.status === 'overdue');
-
     res.json({
       success: true,
       issues,
@@ -63,7 +54,6 @@ exports.getMyIssues = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/library/history
  * Get complete library issue history
@@ -71,15 +61,12 @@ exports.getMyIssues = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const history = await LibraryIssue.find({ studentId: student._id })
       .populate('bookId', 'title author isbn')
       .sort({ issuedAt: -1 });
-
     res.json({
       success: true,
       history
@@ -89,5 +76,4 @@ exports.getHistory = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 module.exports = exports;

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 // Teacher Profile Schema
 const teacherSchema = new mongoose.Schema({
   user_id: {
@@ -15,7 +14,6 @@ const teacherSchema = new mongoose.Schema({
     uppercase: true,
     trim: true
   },
-  // Staff code for Islamic college mapping
   staffCode: {
     type: String,
     unique: true,
@@ -180,7 +178,6 @@ const teacherSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class'
   }],
-
   schedule: [{
     day: {
       type: String,
@@ -227,19 +224,16 @@ const teacherSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Indexes
 teacherSchema.index({ user_id: 1 });
 teacherSchema.index({ employee_id: 1 });
 teacherSchema.index({ department: 1 });
 teacherSchema.index({ status: 1 });
-
 // Pre-save middleware
 teacherSchema.pre('save', function(next) {
   this.updated_at = Date.now();
   next();
 });
-
 // Virtual for total salary
 teacherSchema.virtual('totalSalary').get(function() {
   const basic = this.salary_info.basic_salary || 0;
@@ -247,10 +241,8 @@ teacherSchema.virtual('totalSalary').get(function() {
   const deductions = Object.values(this.salary_info.deductions || {}).reduce((sum, val) => sum + (val || 0), 0);
   return basic + allowances - deductions;
 });
-
 // Method to check if teacher can perform action
 teacherSchema.methods.canPerformAction = function(action) {
   return this.permissions[action] || false;
 };
-
 module.exports = mongoose.model('Teacher', teacherSchema);

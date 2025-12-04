@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const libraryBookSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -59,22 +58,18 @@ const libraryBookSchema = new mongoose.Schema({
     default: 'Good'
   }
 }, { timestamps: true });
-
 // Virtual for available books
 libraryBookSchema.virtual('available').get(function() {
   return this.quantity - this.issuedCount;
 });
-
 // Pre-save to calculate availableCount
 libraryBookSchema.pre('save', function(next) {
   this.availableCount = this.quantity - this.issuedCount;
   next();
 });
-
 // Indexes
 libraryBookSchema.index({ title: 1 });
 libraryBookSchema.index({ author: 1 });
 libraryBookSchema.index({ isbn: 1 });
 libraryBookSchema.index({ category: 1 });
-
 module.exports = mongoose.model('LibraryBook', libraryBookSchema);

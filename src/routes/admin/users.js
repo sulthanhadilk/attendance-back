@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../../controllers/admin/usersController');
-
 router.get('/students', ctrl.listStudents);
 router.post('/students', ctrl.createStudent);
 router.put('/students/:id', ctrl.updateStudent);
@@ -12,5 +11,4 @@ router.put('/teachers/:id', ctrl.updateTeacher);
 router.put('/teachers/:id/disable', ctrl.disableTeacher);
 router.post('/reset-password', ctrl.resetPassword);
 router.post('/profile-photo/approve', ctrl.approvePhoto);
-
 module.exports = router;

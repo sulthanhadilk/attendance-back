@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const guardianSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -26,7 +25,6 @@ const guardianSchema = new mongoose.Schema({
   fatherPin: String,
   fatherOccupation: String,
   fatherIncome: Number,
-  
   motherName: {
     type: String,
     trim: true
@@ -41,7 +39,6 @@ const guardianSchema = new mongoose.Schema({
     trim: true
   },
   motherOccupation: String,
-  
   guardianName: {
     type: String,
     trim: true
@@ -52,7 +49,6 @@ const guardianSchema = new mongoose.Schema({
     trim: true
   },
   guardianAddress: String,
-  
   createdAt: {
     type: Date,
     default: Date.now
@@ -62,7 +58,5 @@ const guardianSchema = new mongoose.Schema({
     default: Date.now
   }
 }, { timestamps: true });
-
 guardianSchema.index({ studentId: 1 });
-
 module.exports = mongoose.model('Guardian', guardianSchema);

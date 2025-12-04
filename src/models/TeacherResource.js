@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const teacherResourceSchema = new mongoose.Schema({
   teacherId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -34,7 +33,5 @@ const teacherResourceSchema = new mongoose.Schema({
     default: Date.now
   }
 }, { timestamps: true });
-
 teacherResourceSchema.index({ teacherId: 1, courseId: 1 });
-
 module.exports = mongoose.model('TeacherResource', teacherResourceSchema);

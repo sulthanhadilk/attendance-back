@@ -4,7 +4,6 @@ const { logActivity } = require('./authController');
 const { createObjectCsvWriter } = require('csv-writer');
 const path = require('path');
 const fs = require('fs');
-
 // Admin Dashboard Stats
 const getDashboardStats = async (req, res) => {
   try {
@@ -27,7 +26,6 @@ const getDashboardStats = async (req, res) => {
       Fine.countDocuments({ is_paid: false }),
       Exam.find().sort({ exam_date: -1 }).limit(5)
     ]);
-
     res.json({
       stats: {
         totalStudents,
@@ -45,33 +43,27 @@ const getDashboardStats = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Manage Students
 const getStudents = async (req, res) => {
   try {
     const students = await Student.find()
       .populate('user_id', 'name email roll_no phone')
       .populate('class_id', 'name section year');
-    
     res.json(students);
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const createStudent = async (req, res) => {
   try {
     const { name, email, roll_no, phone, class_id, admission_date, father_name, address } = req.body;
-
     // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email: email.toLowerCase() }, { roll_no: roll_no.toUpperCase() }]
     });
-
     if (existingUser) {
       return res.status(400).json({ msg: 'Student with this email or roll number already exists' });
     }
-
     // Create user account
     const hashedPassword = await bcrypt.hash('123456', 10); // Default password
     const user = new User({
@@ -82,9 +74,7 @@ const createStudent = async (req, res) => {
       password: hashedPassword,
       role: 'student'
     });
-
     await user.save();
-
     // Create student profile
     const student = new Student({
       user_id: user._id,
@@ -93,122 +83,94 @@ const createStudent = async (req, res) => {
       father_name,
       address
     });
-
     await student.save();
-
     await logActivity(req.user._id, `Created new student: ${name} (${roll_no})`);
-
     res.status(201).json({ msg: 'Student created successfully' });
   } catch (error) {
     console.error('Create student error:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-
     // Update user information
     if (updates.name || updates.email || updates.phone) {
       const userUpdates = {};
       if (updates.name) userUpdates.name = updates.name;
       if (updates.email) userUpdates.email = updates.email.toLowerCase();
       if (updates.phone) userUpdates.phone = updates.phone;
-
       const student = await Student.findById(id);
       await User.findByIdAndUpdate(student.user_id, userUpdates);
     }
-
     // Update student profile
     const studentUpdates = {};
     if (updates.class_id) studentUpdates.class_id = updates.class_id;
     if (updates.father_name) studentUpdates.father_name = updates.father_name;
     if (updates.address) studentUpdates.address = updates.address;
-
     await Student.findByIdAndUpdate(id, studentUpdates);
-
     await logActivity(req.user._id, `Updated student profile: ${id}`);
-
     res.json({ msg: 'Student updated successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
-
     const student = await Student.findById(id);
     if (!student) {
       return res.status(404).json({ msg: 'Student not found' });
     }
-
     // Delete user account and student profile
     await User.findByIdAndDelete(student.user_id);
     await Student.findByIdAndDelete(id);
-
     await logActivity(req.user._id, `Deleted student: ${id}`);
-
     res.json({ msg: 'Student deleted successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Delete Teacher
 const deleteTeacher = async (req, res) => {
   try {
     const { id } = req.params;
-
     const teacher = await Teacher.findById(id);
     if (!teacher) {
       return res.status(404).json({ msg: 'Teacher not found' });
     }
-
     await User.findByIdAndDelete(teacher.user_id);
     await Teacher.findByIdAndDelete(id);
-
     await logActivity(req.user._id, `Deleted teacher: ${id}`);
-
     res.json({ msg: 'Teacher deleted successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Manage Teachers
 const getTeachers = async (req, res) => {
   try {
     const teachers = await Teacher.find()
       .populate('user_id', 'name email phone')
       .populate('subjects', 'name type');
-    
     res.json(teachers);
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const createTeacher = async (req, res) => {
   try {
     const { name, email, phone, subjects, designation, department, joining_date, basic_salary } = req.body;
-
     if (!email) return res.status(400).json({ msg: 'Email is required for teacher' });
     if (!department) return res.status(400).json({ msg: 'Department is required for teacher' });
-
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({ msg: 'Teacher with this email already exists' });
     }
-
-    // Generate employee ID
     const teacherCount = await Teacher.countDocuments();
     const employee_id = `TCH${String(teacherCount + 1).padStart(3, '0')}`;
-
     // Create user account
     const hashedPassword = await bcrypt.hash('123456', 10);
     const user = new User({
@@ -219,9 +181,7 @@ const createTeacher = async (req, res) => {
       password: hashedPassword,
       role: 'teacher'
     });
-
     await user.save();
-
     // Create teacher profile matching schema requirements
     const teacher = new Teacher({
       user_id: user._id,
@@ -232,35 +192,28 @@ const createTeacher = async (req, res) => {
       experience: { current_school_joining_date: joining_date ? new Date(joining_date) : new Date() },
       salary_info: { basic_salary: Number(basic_salary) || 0, allowances: {}, deductions: {} }
     });
-
     await teacher.save();
-
     await logActivity(req.user._id, `Created new teacher: ${name} (${employee_id})`);
-
     res.status(201).json({ msg: 'Teacher created successfully' });
   } catch (error) {
     console.error('Create teacher error:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Manage Classes
 const getClasses = async (req, res) => {
   try {
     const classes = await Class.find()
       .populate('class_teacher', 'name')
       .populate('subjects', 'name type');
-    
     res.json(classes);
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const createClass = async (req, res) => {
   try {
     const { name, section, year, class_teacher, subjects } = req.body;
-
     const newClass = new Class({
       name,
       section,
@@ -268,17 +221,13 @@ const createClass = async (req, res) => {
       class_teacher,
       subjects: subjects || []
     });
-
     await newClass.save();
-
     await logActivity(req.user._id, `Created new class: ${name} ${section}`);
-
     res.status(201).json({ msg: 'Class created successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Manage Subjects
 const getSubjects = async (req, res) => {
   try {
@@ -288,28 +237,22 @@ const getSubjects = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const createSubject = async (req, res) => {
   try {
     const { name, code, type, description } = req.body;
-
     const subject = new Subject({
       name,
       code: code.toUpperCase(),
       type,
       description
     });
-
     await subject.save();
-
     await logActivity(req.user._id, `Created new subject: ${name} (${code})`);
-
     res.status(201).json({ msg: 'Subject created successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Session Management
 const getSessions = async (req, res) => {
   try {
@@ -319,36 +262,28 @@ const getSessions = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const createSession = async (req, res) => {
   try {
     const { name, start_date, end_date } = req.body;
-
     // Deactivate current active session
     await Session.updateMany({}, { is_active: false });
-
     const session = new Session({
       name,
       start_date,
       end_date,
       is_active: true
     });
-
     await session.save();
-
     await logActivity(req.user._id, `Created new session: ${name}`);
-
     res.status(201).json({ msg: 'Session created successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Reports
 const getAttendanceReport = async (req, res) => {
   try {
     const { class_id, subject_id, date_from, date_to } = req.query;
-
     const matchConditions = {};
     if (class_id) matchConditions.class_id = class_id;
     if (subject_id) matchConditions.subject_id = subject_id;
@@ -358,7 +293,6 @@ const getAttendanceReport = async (req, res) => {
         $lte: new Date(date_to)
       };
     }
-
     const attendanceReport = await Attendance.aggregate([
       { $match: matchConditions },
       {
@@ -401,14 +335,12 @@ const getAttendanceReport = async (req, res) => {
         }
       }
     ]);
-
     res.json(attendanceReport);
   } catch (error) {
     console.error('Attendance report error:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 const getFinesReport = async (req, res) => {
   try {
     const fines = await Fine.find()
@@ -417,25 +349,21 @@ const getFinesReport = async (req, res) => {
         populate: { path: 'user_id', select: 'name roll_no' }
       })
       .sort({ fine_date: -1 });
-
     res.json(fines);
   } catch (error) {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 // Export attendance data as CSV
 const exportAttendanceCSV = async (req, res) => {
   try {
     const ExportService = require('../services/exportService');
     const { startDate, endDate, classId } = req.query;
-    
     const result = await ExportService.exportAttendanceCSV(
       classId,
       startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default last 30 days
       endDate ? new Date(endDate) : new Date()
     );
-    
     res.json({
       message: 'Attendance data exported successfully',
       fileName: result.fileName,
@@ -446,18 +374,15 @@ const exportAttendanceCSV = async (req, res) => {
     res.status(500).json({ msg: 'Failed to export attendance data' });
   }
 };
-
 // Export fines data as CSV  
 const exportFinesCSV = async (req, res) => {
   try {
     const ExportService = require('../services/exportService');
     const { startDate, endDate } = req.query;
-    
     const result = await ExportService.exportFinesCSV(
       startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       endDate ? new Date(endDate) : new Date()
     );
-    
     res.json({
       message: 'Fines data exported successfully',
       fileName: result.fileName,
@@ -468,15 +393,12 @@ const exportFinesCSV = async (req, res) => {
     res.status(500).json({ msg: 'Failed to export fines data' });
   }
 };
-
 // Export exam results as CSV
 const exportExamResultsCSV = async (req, res) => {
   try {
     const ExportService = require('../services/exportService');
     const { examId } = req.params;
-    
     const result = await ExportService.exportExamResultsCSV(examId);
-    
     res.json({
       message: 'Exam results exported successfully',
       fileName: result.fileName,
@@ -487,18 +409,15 @@ const exportExamResultsCSV = async (req, res) => {
     res.status(500).json({ msg: 'Failed to export exam results' });
   }
 };
-
 // Download exported file
 const downloadFile = async (req, res) => {
   try {
     const { fileName } = req.params;
     const path = require('path');
     const filePath = path.join(__dirname, '../../exports', fileName);
-    
     if (!require('fs').existsSync(filePath)) {
       return res.status(404).json({ msg: 'File not found' });
     }
-    
     res.download(filePath, (err) => {
       if (err) {
         console.error('Download error:', err);
@@ -510,43 +429,35 @@ const downloadFile = async (req, res) => {
     res.status(500).json({ msg: 'Failed to download file' });
   }
 };
-
   // Create User (Generic - can create student, teacher, or admin)
 const createUser = async (req, res) => {
   try {
     const { name, email, roll_no, password, role } = req.body;
-
     // Validate required fields
     if (!name || !password || !role) {
       return res.status(400).json({ msg: 'Please provide name, password, and role' });
     }
-
     // Email is required for teachers and admins, optional for students
     if ((role === 'teacher' || role === 'admin') && !email) {
       return res.status(400).json({ msg: 'Email is required for teachers and administrators' });
     }
-
     // Roll number is required for students
     if (role === 'student' && !roll_no) {
       return res.status(400).json({ msg: 'Roll number is required for students' });
     }
-
     // Validate role
     if (!['student', 'teacher', 'admin'].includes(role)) {
       return res.status(400).json({ msg: 'Invalid role. Must be student, teacher, or admin' });
     }
-
     // Check if user already exists by email (if provided)
     if (email) {
       const existingUser = await User.findOne({ 
         email: email.toLowerCase() 
       });
-
       if (existingUser) {
         return res.status(400).json({ msg: 'User with this email already exists' });
       }
     }
-
     // Check roll number if provided
     if (roll_no) {
       const existingRoll = await User.findOne({ 
@@ -556,10 +467,8 @@ const createUser = async (req, res) => {
         return res.status(400).json({ msg: 'User with this roll number already exists' });
       }
     }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create user
     const user = new User({
       name,
@@ -568,9 +477,7 @@ const createUser = async (req, res) => {
       password: hashedPassword,
       role
     });
-
     await user.save();
-
     // Create profile based on role
     if (role === 'student') {
       const student = new Student({
@@ -586,11 +493,9 @@ const createUser = async (req, res) => {
     } else if (role === 'teacher') {
       const teacherCount = await Teacher.countDocuments();
       const employee_id = `TCH${String(teacherCount + 1).padStart(3, '0')}`;
-
       // Update user with employee ID
       user.roll_no = employee_id;
       await user.save();
-
       const teacher = new Teacher({
         user_id: user._id,
         employee_id,
@@ -601,9 +506,7 @@ const createUser = async (req, res) => {
       });
       await teacher.save();
     }
-
     await logActivity(req.user._id, `Created new ${role}: ${name} (${user.email})`);
-
     res.status(201).json({ 
       msg: 'User created successfully',
       user: {
@@ -619,7 +522,6 @@ const createUser = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 module.exports = {
   getDashboardStats,
   createUser,
@@ -642,7 +544,6 @@ module.exports = {
   exportFinesCSV,
   exportExamResultsCSV,
   downloadFile,
-  // --- Added: Bulk import/export students ---
   importStudentsCSV: async (req, res) => {
     try {
       if (!req.file || !req.file.buffer) {
@@ -658,13 +559,11 @@ module.exports = {
         headers.forEach((h, i) => obj[h] = (cols[i] || '').trim());
         return obj;
       });
-
       // Preview-by-default behavior; commit only if explicitly requested
       const commit = (req.query.commit === 'true');
       if (!commit) {
         return res.json({ preview: true, count: rows.length, sample: rows.slice(0, 5) });
       }
-
       // Minimal create flow: expects columns name,email,roll_no,phone,class_id
       let created = 0, skipped = 0, errors = [];
       for (const r of rows) {
@@ -687,13 +586,11 @@ module.exports = {
       res.status(500).json({ msg: 'Failed to import students' });
     }
   },
-
   exportStudentsCSV: async (req, res) => {
     try {
       const students = await Student.find()
         .populate('user_id', 'name email roll_no phone')
         .populate('class_id', 'name section year');
-
       const rows = students.map(s => ({
         name: s.user_id?.name || '',
         email: s.user_id?.email || '',
@@ -702,7 +599,6 @@ module.exports = {
         class: s.class_id ? `${s.class_id.name} ${s.class_id.section}` : '',
         year: s.class_id?.year || ''
       }));
-
       const fileName = `students_${Date.now()}.csv`;
       const filePath = path.join(__dirname, '../../exports', fileName);
       const dir = path.dirname(filePath);
@@ -725,8 +621,6 @@ module.exports = {
       res.status(500).json({ msg: 'Failed to export students' });
     }
   },
-
-  // --- Added: Attendance admin operations (stubs/minimal) ---
   getAttendanceRequests: async (req, res) => {
     try {
       // Return pending adjustments (stub)
@@ -749,8 +643,6 @@ module.exports = {
       res.json({ msg: 'Attendance adjusted' });
     } catch (error) { res.status(500).json({ msg: 'Server error' }); }
   },
-
-  // --- Added: Fines management ---
   createFine: async (req, res) => {
     try {
       const { student_id, teacher_id, amount, reason, custom_reason, date } = req.body;
@@ -793,8 +685,6 @@ module.exports = {
       res.json(fines);
     } catch (error) { res.status(500).json({ msg: 'Server error' }); }
   },
-
-  // --- Added: Fees (stubs) ---
   getFeesSummary: async (req, res) => {
     try { res.json({ totalCollected: 0, pending: 0, lastUpdated: new Date().toISOString() }); }
     catch (e) { res.status(500).json({ msg: 'Server error' }); }
@@ -803,45 +693,32 @@ module.exports = {
     try { res.status(201).json({ msg: 'Fee recorded (stub)' }); }
     catch (e) { res.status(500).json({ msg: 'Server error' }); }
   },
-
-  // --- Added: Exams & Results (stubs) ---
   createExamAdmin: async (req, res) => { res.status(201).json({ msg: 'Exam created (stub)' }); },
   addExamResultsAdmin: async (req, res) => { res.json({ msg: 'Results added (stub)' }); },
   publishExamResultsAdmin: async (req, res) => { res.json({ msg: 'Results published (stub)' }); },
   getExamResultsAdmin: async (req, res) => { res.json([]); },
-
-  // --- Added: Notices & Events (stubs) ---
   createNotice: async (req, res) => { res.status(201).json({ msg: 'Notice created (stub)' }); },
   listNotices: async (req, res) => { res.json([]); },
   createEvent: async (req, res) => { res.status(201).json({ msg: 'Event created (stub)' }); },
-
-  // --- Added: Reports (grades stub) ---
   getGradesReport: async (req, res) => { res.json([]); },
-
-  // --- Added: Audit Logs ---
   getAuditLogs: async (req, res) => {
     try {
       const logs = await Log.find().sort({ createdAt: -1 }).limit(100);
       res.json(logs);
     } catch (e) { res.status(500).json({ msg: 'Server error' }); }
   },
-
-  // --- Added: Settings (in-memory stub) ---
   _settingsCache: { fineDefaultAmount: 10, attendanceGraceMinutes: 5 },
   getSettings: async (req, res) => { res.json(module.exports._settingsCache); },
   updateSettings: async (req, res) => {
     module.exports._settingsCache = { ...module.exports._settingsCache, ...(req.body || {}) };
     res.json({ msg: 'Settings updated', settings: module.exports._settingsCache });
   },
-
-  // --- Added: AI Stubs ---
   aiAttendanceAnomalies: async (req, res) => { res.json({ anomalies: [] }); },
   aiSuggestFine: async (req, res) => { res.json({ suggestedAmount: 20, reason: 'stub' }); },
   aiScheduleOptimizer: async (req, res) => { res.json({ suggestions: [] }); },
   aiDropoutRisk: async (req, res) => { res.json({ risk: 0.12, level: 'low' }); },
   aiGenerateReport: async (req, res) => { res.json({ url: '/exports/mock_report.json' }); }
 };
-
 // Timetable stubs (simple in-memory for UI demo)
 let _timetableStore = [];
 module.exports.getTimetable = async (req, res) => {

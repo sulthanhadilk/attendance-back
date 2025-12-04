@@ -1,5 +1,4 @@
 const { PrayerAttendance, Student, AuditLog } = require('../../models');
-
 exports.summary = async (req, res) => {
   const { classId, from, to } = req.query;
   const filter = {};
@@ -11,14 +10,12 @@ exports.summary = async (req, res) => {
   ]);
   res.json(agg);
 };
-
 exports.override = async (req, res) => {
   const { id, status } = req.body;
   const updated = await PrayerAttendance.findByIdAndUpdate(id, { status }, { new: true });
   await AuditLog.create({ actorUserId:req.user._id, actorRole:'admin', action:'override', entityType:'PrayerAttendance', entityId:id, details:{status} });
   res.json(updated);
 };
-
 exports.setReward = async (req, res) => {
   const { id, rewarded } = req.body;
   const updated = await PrayerAttendance.findByIdAndUpdate(id, { rewarded: !!rewarded }, { new: true });

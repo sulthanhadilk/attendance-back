@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const termAttendanceSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -34,7 +33,5 @@ const termAttendanceSchema = new mongoose.Schema({
     default: 0
   }
 }, { timestamps: true });
-
 termAttendanceSchema.index({ studentId: 1, semester: 1 });
-
 module.exports = mongoose.model('TermAttendance', termAttendanceSchema);

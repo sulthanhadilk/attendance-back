@@ -1,7 +1,5 @@
 const { Student, HourlyAttendance, ExamResult, AuditLog } = require('../../models');
-
 let AI_ENABLED = process.env.TEACHER_AI_ENABLED === 'true';
-
 exports.toggle = async (req, res) => {
   const { enabled } = req.body; AI_ENABLED = !!enabled;
   await AuditLog.create({ actorUserId:req.user._id, actorRole:'admin', action:'ai-toggle', entityType:'AI', details:{enabled:AI_ENABLED} });

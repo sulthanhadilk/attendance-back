@@ -1,5 +1,4 @@
 const { ExamResult, AuditLog } = require('../../models');
-
 exports.list = async (req, res) => {
   const { classId, examType } = req.query;
   const filter = {};

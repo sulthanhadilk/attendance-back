@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 // Student Profile Schema
 const studentSchema = new mongoose.Schema({
   user_id: {
@@ -161,20 +160,17 @@ const studentSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Indexes
 studentSchema.index({ user_id: 1 });
 studentSchema.index({ class_id: 1 });
 studentSchema.index({ roll_number: 1 });
 studentSchema.index({ admission_number: 1 });
 studentSchema.index({ status: 1 });
-
 // Pre-save middleware
 studentSchema.pre('save', function(next) {
   this.updated_at = Date.now();
   next();
 });
-
 // Virtual for guardian primary contact
 studentSchema.virtual('primaryGuardianContact').get(function() {
   return {
@@ -183,5 +179,4 @@ studentSchema.virtual('primaryGuardianContact').get(function() {
     email: this.guardian_info.guardian_email
   };
 });
-
 module.exports = mongoose.model('Student', studentSchema);

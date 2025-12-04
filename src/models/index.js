@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 // User Schema (for authentication)
 const userSchema = new mongoose.Schema({
   name: {
@@ -41,7 +40,6 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Student Schema
 const studentSchema = new mongoose.Schema({
   user_id: {
@@ -71,7 +69,6 @@ const studentSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Teacher Schema (expanded for profile support)
 const teacherSchema = new mongoose.Schema({
   user_id: {
@@ -83,7 +80,6 @@ const teacherSchema = new mongoose.Schema({
   // Identification
   emp_id: { type: String, trim: true, uppercase: true, sparse: true },
   employee_id: { type: String, trim: true, uppercase: true, sparse: true },
-
   // Professional
   designation: { type: String, trim: true },
   department: {
@@ -92,24 +88,19 @@ const teacherSchema = new mongoose.Schema({
     trim: true
   },
   joining_date: { type: Date },
-
   // Teaching
   subjects: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Subject'
   }],
-
   // Qualifications & Experience (simplified)
   qualification: { type: String, trim: true },
   experience_years: { type: Number, default: 0 },
-
-  // Additional personal details not in User
   blood_group: { type: String, trim: true },
   religion: { type: String, trim: true },
   caste: { type: String, trim: true },
   category: { type: String, trim: true },
   aadhaar_number: { type: String, trim: true },
-
   created_at: {
     type: Date,
     default: Date.now
@@ -121,7 +112,6 @@ const teacherSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Class Schema
 const classSchema = new mongoose.Schema({
   name: {
@@ -155,7 +145,6 @@ const classSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Session Schema (Subh, Maqrib, Class Periods)
 const sessionSchema = new mongoose.Schema({
   name: {
@@ -183,7 +172,6 @@ const sessionSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Subject Schema (Islamic & School subjects)
 const subjectSchema = new mongoose.Schema({
   name: {
@@ -213,7 +201,6 @@ const subjectSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Attendance Schema
 const attendanceSchema = new mongoose.Schema({
   student_id: {
@@ -247,7 +234,6 @@ const attendanceSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Fine Schema
 const fineSchema = new mongoose.Schema({
   student_id: {
@@ -289,7 +275,6 @@ const fineSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Exam Schema
 const examSchema = new mongoose.Schema({
   name: {
@@ -318,7 +303,6 @@ const examSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Exam Result Schema
 const examResultSchema = new mongoose.Schema({
   exam_id: {
@@ -358,7 +342,6 @@ const examResultSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Activity Log Schema
 const logSchema = new mongoose.Schema({
   user_id: {
@@ -378,28 +361,22 @@ const logSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Auto-calculate grade before saving exam result
 examResultSchema.pre('save', function(next) {
   const percentage = (this.marks_obtained / this.max_marks) * 100;
-  
   if (percentage >= 90) this.grade = 'A';
   else if (percentage >= 75) this.grade = 'B';
   else if (percentage >= 60) this.grade = 'C';
   else if (percentage >= 45) this.grade = 'D';
   else this.grade = 'F';
-  
   next();
 });
-
 // Indexes for performance
 userSchema.index({ email: 1 });
 userSchema.index({ roll_no: 1 });
 attendanceSchema.index({ student_id: 1, date: -1 });
 fineSchema.index({ student_id: 1, is_paid: 1 });
 examResultSchema.index({ exam_id: 1, student_id: 1 });
-
-// Import additional models
 const Admin = require('./Admin');
 const Department = require('./Department');
 const Course = require('./Course');
@@ -419,7 +396,6 @@ const LibraryIssue = require('./LibraryIssue');
 const Notice = require('./Notice');
 const Event = require('./Event');
 const AICache = require('./AICache');
-
 // Also import models that might be defined separately
 let TeacherModel, StudentModel, ClassModel;
 try {
@@ -437,7 +413,6 @@ try {
 } catch (e) {
   ClassModel = mongoose.model('Class', classSchema);
 }
-
 module.exports = {
   User: mongoose.model('User', userSchema),
   Student: StudentModel,
@@ -450,19 +425,15 @@ module.exports = {
   Exam: mongoose.model('Exam', examSchema),
   ExamResult: mongoose.model('ExamResult', examResultSchema),
   Log: mongoose.model('Log', logSchema),
-  
   // Core models
   Admin,
   Department,
   Course,
-  
   // Fee models
   FeeStructure,
   FeePayment,
-  
   // Audit
   AuditLog,
-  
   // Teacher module models
   PrayerAttendance,
   HourlyAttendance,
@@ -472,15 +443,12 @@ module.exports = {
   ClassActivity,
   Club,
   LMSLink,
-  
   // Library models
   LibraryBook,
   LibraryIssue,
-  
   // Communication models
   Notice,
   Event,
-  
   // AI models
   AICache
 };

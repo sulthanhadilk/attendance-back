@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const teacherNotificationSchema = new mongoose.Schema({
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
   target: { type: String, enum: ['student', 'class'], required: true },
@@ -8,7 +7,5 @@ const teacherNotificationSchema = new mongoose.Schema({
   title: { type: String, required: true },
   body: { type: String, required: true },
 }, { timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } });
-
 teacherNotificationSchema.index({ teacherId: 1, createdAt: -1 });
-
 module.exports = mongoose.model('TeacherNotification', teacherNotificationSchema);

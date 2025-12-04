@@ -1,5 +1,4 @@
 const { TeacherNotification, AuditLog } = require('../../models');
-
 exports.list = async (req, res) => {
   const list = await TeacherNotification.find({ target: 'all' }).sort({ createdAt: -1 });
   res.json(list);

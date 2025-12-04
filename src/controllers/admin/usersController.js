@@ -1,5 +1,4 @@
 const { User, Student, Teacher, AuditLog } = require('../../models');
-
 exports.listStudents = async (req, res) => {
   const list = await Student.find().populate('user_id');
   res.json(list);

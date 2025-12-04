@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 // Class Schema
 const classSchema = new mongoose.Schema({
   name: {
@@ -52,10 +51,8 @@ const classSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Compound index for unique class-section combination per year
 classSchema.index({ name: 1, section: 1, year: 1 }, { unique: true });
-
 // Subject Schema
 const subjectSchema = new mongoose.Schema({
   name: {
@@ -107,7 +104,6 @@ const subjectSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Session Schema (Prayer times, Class periods, etc.)
 const sessionSchema = new mongoose.Schema({
   name: {
@@ -150,7 +146,6 @@ const sessionSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Attendance Schema
 const attendanceSchema = new mongoose.Schema({
   student_id: {
@@ -197,11 +192,9 @@ const attendanceSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Compound index for unique attendance per student per session per date
 attendanceSchema.index({ student_id: 1, session_id: 1, date: 1 }, { unique: true });
 attendanceSchema.index({ date: 1, class_id: 1 });
-
 // Fine Schema
 const fineSchema = new mongoose.Schema({
   student_id: {
@@ -265,11 +258,9 @@ const fineSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Indexes for fines
 fineSchema.index({ student_id: 1, date: -1 });
 fineSchema.index({ is_paid: 1 });
-
 module.exports = {
   Class: mongoose.model('Class', classSchema),
   Subject: mongoose.model('Subject', subjectSchema),

@@ -1,5 +1,4 @@
 const { Student, Fine, FeeStructure, FeePayment } = require('../../models');
-
 /**
  * GET /api/student/fees/structure
  * Get applicable fee structure for student
@@ -8,11 +7,9 @@ exports.getFeeStructure = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id })
       .populate('departmentId');
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const feeStructures = await FeeStructure.find({
       $or: [
         { departmentId: student.departmentId },
@@ -20,7 +17,6 @@ exports.getFeeStructure = async (req, res) => {
         { batch: student.batch }
       ]
     }).sort({ createdAt: -1 });
-
     res.json({
       success: true,
       feeStructures
@@ -30,7 +26,6 @@ exports.getFeeStructure = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/fees/payments
  * Get student's fee payment history
@@ -38,19 +33,15 @@ exports.getFeeStructure = async (req, res) => {
 exports.getFeePayments = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const payments = await FeePayment.find({ studentId: student._id })
       .populate('structureId', 'title type semester')
       .sort({ date: -1 });
-
     const totalPaid = payments
       .filter(p => p.status === 'success')
       .reduce((sum, p) => sum + p.amount, 0);
-
     res.json({
       success: true,
       payments,
@@ -61,7 +52,6 @@ exports.getFeePayments = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/fees/due
  * Get pending fees/dues
@@ -70,11 +60,9 @@ exports.getDueFees = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id })
       .populate('departmentId');
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     // Get applicable fee structures
     const feeStructures = await FeeStructure.find({
       $or: [
@@ -82,17 +70,14 @@ exports.getDueFees = async (req, res) => {
         { semester: student.semester }
       ]
     });
-
     // Get paid amounts
     const payments = await FeePayment.find({
       studentId: student._id,
       status: 'success'
     });
-
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const totalFees = feeStructures.reduce((sum, f) => sum + (f.total || f.amount), 0);
     const due = totalFees - totalPaid;
-
     res.json({
       success: true,
       totalFees,
@@ -106,7 +91,6 @@ exports.getDueFees = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/fines
  * Get student's fines
@@ -115,14 +99,11 @@ exports.getFines = async (req, res) => {
   try {
     const { status } = req.query;
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const query = { student_id: student._id };
     if (status) query.status = status;
-
     const fines = await Fine.find(query)
       .populate('teacher_id', 'user_id')
       .populate({
@@ -130,11 +111,9 @@ exports.getFines = async (req, res) => {
         populate: { path: 'user_id', select: 'name' }
       })
       .sort({ createdAt: -1 });
-
     const totalUnpaid = fines
       .filter(f => f.status === 'unpaid')
       .reduce((sum, f) => sum + f.amount, 0);
-
     res.json({
       success: true,
       fines,
@@ -145,7 +124,6 @@ exports.getFines = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/fees/history
  * Complete financial history
@@ -154,20 +132,16 @@ exports.getFeesHistory = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const query = { studentId: student._id };
-    
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-
     const [payments, fines] = await Promise.all([
       FeePayment.find(query)
         .populate('structureId', 'title type')
@@ -180,7 +154,6 @@ exports.getFeesHistory = async (req, res) => {
         })
         .sort({ createdAt: -1 })
     ]);
-
     res.json({
       success: true,
       payments,
@@ -191,5 +164,4 @@ exports.getFeesHistory = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 module.exports = exports;

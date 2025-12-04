@@ -1,5 +1,4 @@
 const { Student, HourlyAttendance, PrayerAttendance, Course, Class } = require('../../models');
-
 /**
  * GET /api/student/attendance/course
  * Get course-wise attendance summary
@@ -7,23 +6,18 @@ const { Student, HourlyAttendance, PrayerAttendance, Course, Class } = require('
 exports.getCourseAttendance = async (req, res) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     // Get all attendance records grouped by course
     const attendanceRecords = await HourlyAttendance.find({
       studentId: student._id
     }).populate('courseId', 'name code type');
-
     // Group by course
     const courseStats = {};
-    
     attendanceRecords.forEach(record => {
       const courseId = record.courseId?._id?.toString();
       if (!courseId) return;
-      
       if (!courseStats[courseId]) {
         courseStats[courseId] = {
           course: record.courseId,
@@ -34,14 +28,12 @@ exports.getCourseAttendance = async (req, res) => {
           letoff: 0
         };
       }
-      
       courseStats[courseId].total++;
       if (record.status === 'present') courseStats[courseId].present++;
       if (record.status === 'absent') courseStats[courseId].absent++;
       if (record.status === 'late') courseStats[courseId].late++;
       if (record.status === 'letoff') courseStats[courseId].letoff++;
     });
-
     // Calculate percentages
     const result = Object.values(courseStats).map(stat => ({
       course: stat.course,
@@ -52,7 +44,6 @@ exports.getCourseAttendance = async (req, res) => {
       letoff: stat.letoff,
       percentage: stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0
     }));
-
     res.json({
       success: true,
       attendance: result
@@ -62,7 +53,6 @@ exports.getCourseAttendance = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/attendance/hourly/:year/:month
  * Get hourly attendance for a specific month
@@ -71,14 +61,11 @@ exports.getHourlyAttendance = async (req, res) => {
   try {
     const { year, month } = req.params;
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
-
     const attendance = await HourlyAttendance.find({
       studentId: student._id,
       date: { $gte: startDate, $lte: endDate }
@@ -89,10 +76,8 @@ exports.getHourlyAttendance = async (req, res) => {
         populate: { path: 'user_id', select: 'name' }
       })
       .sort({ date: 1, hourIndex: 1 });
-
     // Group by date
     const attendanceByDate = {};
-    
     attendance.forEach(record => {
       const dateKey = record.date.toISOString().split('T')[0];
       if (!attendanceByDate[dateKey]) {
@@ -107,7 +92,6 @@ exports.getHourlyAttendance = async (req, res) => {
         teacher: record.markedByTeacherId?.user_id?.name
       };
     });
-
     res.json({
       success: true,
       month: parseInt(month),
@@ -119,7 +103,6 @@ exports.getHourlyAttendance = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/attendance/term
  * Get term/semester wise attendance summary
@@ -128,13 +111,10 @@ exports.getTermAttendance = async (req, res) => {
   try {
     const { semester } = req.query;
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const query = { studentId: student._id };
-    
     // Filter by semester if provided
     if (semester) {
       // Assuming academic year: June-May, Odd sem: June-Nov, Even sem: Dec-May
@@ -151,18 +131,15 @@ exports.getTermAttendance = async (req, res) => {
         };
       }
     }
-
     const [totalHourly, presentHourly, absentHourly, lateHourly] = await Promise.all([
       HourlyAttendance.countDocuments(query),
       HourlyAttendance.countDocuments({ ...query, status: 'present' }),
       HourlyAttendance.countDocuments({ ...query, status: 'absent' }),
       HourlyAttendance.countDocuments({ ...query, status: 'late' })
     ]);
-
     const percentage = totalHourly > 0 
       ? Math.round((presentHourly / totalHourly) * 100) 
       : 0;
-
     res.json({
       success: true,
       semester: semester || 'all',
@@ -179,7 +156,6 @@ exports.getTermAttendance = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/attendance/prayer
  * Get prayer attendance (Subh + Maghrib)
@@ -188,20 +164,16 @@ exports.getPrayerAttendance = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const query = { studentId: student._id };
-    
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-
     const prayerRecords = await PrayerAttendance.find(query)
       .populate('teacherId', 'user_id')
       .populate({
@@ -209,13 +181,11 @@ exports.getPrayerAttendance = async (req, res) => {
         populate: { path: 'user_id', select: 'name' }
       })
       .sort({ date: -1 });
-
     // Calculate stats
     const stats = {
       subh: { total: 0, present: 0 },
       maghrib: { total: 0, present: 0 }
     };
-
     prayerRecords.forEach(record => {
       const prayerType = record.prayerType.toLowerCase();
       if (stats[prayerType]) {
@@ -225,14 +195,12 @@ exports.getPrayerAttendance = async (req, res) => {
         }
       }
     });
-
     stats.subh.percentage = stats.subh.total > 0 
       ? Math.round((stats.subh.present / stats.subh.total) * 100) 
       : 0;
     stats.maghrib.percentage = stats.maghrib.total > 0 
       ? Math.round((stats.maghrib.present / stats.maghrib.total) * 100) 
       : 0;
-
     res.json({
       success: true,
       stats,
@@ -243,7 +211,6 @@ exports.getPrayerAttendance = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 /**
  * GET /api/student/attendance/monthly
  * Get monthly attendance overview
@@ -252,17 +219,13 @@ exports.getMonthlyAttendance = async (req, res) => {
   try {
     const { year, month } = req.query;
     const student = await Student.findOne({ user_id: req.user._id });
-    
     if (!student) {
       return res.status(404).json({ success: false, msg: 'Student not found' });
     }
-
     const targetYear = year ? parseInt(year) : new Date().getFullYear();
     const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
-
     const startDate = new Date(targetYear, targetMonth - 1, 1);
     const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
-
     const [hourlyRecords, prayerRecords] = await Promise.all([
       HourlyAttendance.find({
         studentId: student._id,
@@ -273,27 +236,23 @@ exports.getMonthlyAttendance = async (req, res) => {
         date: { $gte: startDate, $lte: endDate }
       })
     ]);
-
     const hourlyStats = {
       total: hourlyRecords.length,
       present: hourlyRecords.filter(r => r.status === 'present').length,
       absent: hourlyRecords.filter(r => r.status === 'absent').length,
       late: hourlyRecords.filter(r => r.status === 'late').length
     };
-
     const prayerStats = {
       total: prayerRecords.length,
       present: prayerRecords.filter(r => r.status === 'present').length,
       absent: prayerRecords.filter(r => r.status === 'absent').length
     };
-
     hourlyStats.percentage = hourlyStats.total > 0 
       ? Math.round((hourlyStats.present / hourlyStats.total) * 100) 
       : 0;
     prayerStats.percentage = prayerStats.total > 0 
       ? Math.round((prayerStats.present / prayerStats.total) * 100) 
       : 0;
-
     res.json({
       success: true,
       year: targetYear,
@@ -306,5 +265,4 @@ exports.getMonthlyAttendance = async (req, res) => {
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 };
-
 module.exports = exports;

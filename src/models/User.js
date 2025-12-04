@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-
 // Enhanced User Schema for comprehensive system
 const userSchema = new mongoose.Schema({
   name: {
@@ -77,12 +76,10 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Index for performance
 userSchema.index({ email: 1 });
 userSchema.index({ roll_no: 1 });
 userSchema.index({ role: 1 });
-
 // Pre-save middleware to hash password and update timestamps
 userSchema.pre('save', async function(next) {
   try {
@@ -91,7 +88,6 @@ userSchema.pre('save', async function(next) {
       this.updated_at = Date.now();
       return next();
     }
-
     // Hash password with salt rounds of 10
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -101,7 +97,6 @@ userSchema.pre('save', async function(next) {
     next(error);
   }
 });
-
 // Method to compare password with hashed password
 userSchema.methods.comparePassword = async function(passwordAttempt) {
   try {
@@ -110,25 +105,20 @@ userSchema.methods.comparePassword = async function(passwordAttempt) {
     throw new Error('Password comparison failed: ' + error.message);
   }
 };
-
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {
   return this.name;
 });
-
 // Method to check if user is student
 userSchema.methods.isStudent = function() {
   return this.role === 'student';
 };
-
 // Method to check if user is teacher
 userSchema.methods.isTeacher = function() {
   return this.role === 'teacher';
 };
-
 // Method to check if user is admin
 userSchema.methods.isAdmin = function() {
   return this.role === 'admin';
 };
-
 module.exports = mongoose.model('User', userSchema);

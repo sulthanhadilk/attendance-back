@@ -1,6 +1,5 @@
 const { Attendance, HourlyAttendance, Student, AuditLog, TeacherNotification } = require('../../models');
 const { Parser } = require('json2csv');
-
 exports.viewClassAttendance = async (req, res) => {
   const { classId, date } = req.query;
   const filter = {};
@@ -9,7 +8,6 @@ exports.viewClassAttendance = async (req, res) => {
   const hourly = await HourlyAttendance.find(filter);
   res.json(hourly);
 };
-
 exports.overrideAttendance = async (req, res) => {
   const { recordId, status } = req.body;
   const updated = await HourlyAttendance.findByIdAndUpdate(recordId, { status }, { new: true });
@@ -20,7 +18,6 @@ exports.overrideAttendance = async (req, res) => {
   }
   res.json(updated);
 };
-
 exports.downloadReport = async (req, res) => {
   const { classId, from, to } = req.query;
   const filter = { classId };
@@ -32,7 +29,6 @@ exports.downloadReport = async (req, res) => {
   res.attachment('attendance.csv');
   res.send(csv);
 };
-
 exports.approveError = async (req, res) => {
   const { recordId } = req.body;
   await AuditLog.create({ actorUserId:req.user._id, actorRole:'admin', action:'approve-error', entityType:'HourlyAttendance', entityId:recordId });

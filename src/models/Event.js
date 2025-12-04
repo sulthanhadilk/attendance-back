@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const eventSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -70,11 +69,9 @@ const eventSchema = new mongoose.Schema({
     }
   }]
 }, { timestamps: true });
-
 // Indexes
 eventSchema.index({ date: 1 });
 eventSchema.index({ createdBy: 1 });
 eventSchema.index({ type: 1, date: 1 });
 eventSchema.index({ isPublic: 1 });
-
 module.exports = mongoose.model('Event', eventSchema);

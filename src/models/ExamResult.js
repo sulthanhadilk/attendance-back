@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const examResultSchema = new mongoose.Schema({
   // legacy link to Exam (optional)
   exam_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Exam' },
@@ -17,7 +16,6 @@ const examResultSchema = new mongoose.Schema({
   percentage: { type: Number },
   published: { type: Boolean, default: false }, // Controls visibility to students
 }, { timestamps: true });
-
 // Auto-calculate grade and percentage before saving
 examResultSchema.pre('save', function(next) {
   // Determine source fields for marks/max
@@ -25,7 +23,6 @@ examResultSchema.pre('save', function(next) {
   const max = (typeof this.maxMarks === 'number') ? this.maxMarks : this.max_marks;
   if (typeof marks === 'number' && typeof max === 'number' && max > 0) {
     this.percentage = Math.round((marks / max) * 100);
-
     // Auto-assign grade based on percentage
     if (this.percentage >= 90) this.grade = 'A';
     else if (this.percentage >= 75) this.grade = 'B';
@@ -33,12 +30,9 @@ examResultSchema.pre('save', function(next) {
     else if (this.percentage >= 45) this.grade = 'D';
     else this.grade = 'F';
   }
-  
   next();
 });
-
 // Indexes to support lookups; uniqueness kept loose to allow multiple exam types
 examResultSchema.index({ exam_id: 1 });
 examResultSchema.index({ studentId: 1, classId: 1, examName: 1 });
-
 module.exports = mongoose.model('ExamResult', examResultSchema);

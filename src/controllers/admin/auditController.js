@@ -1,11 +1,9 @@
 const { AuditLog } = require('../../models');
 const { Parser } = require('json2csv');
-
 exports.list = async (req, res) => {
   const logs = await AuditLog.find().sort({ createdAt: -1 });
   res.json(logs);
 };
-
 exports.exportCsv = async (req, res) => {
   const logs = await AuditLog.find().lean();
   const parser = new Parser();

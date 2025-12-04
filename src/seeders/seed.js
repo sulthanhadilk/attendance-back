@@ -1,14 +1,12 @@
 const bcrypt = require('bcryptjs');
 const connectDB = require('../config/database');
 const { User, Student, Teacher, Class, Subject, Session } = require('../models');
-
+// NOTE: Disabled auto-run. Export function for manual invocation only.
 const seedData = async () => {
   try {
     console.log('🌱 Starting database seeding...');
-    
     // Connect to database
     await connectDB();
-    
     // Clear existing data
     await Promise.all([
       User.deleteMany({}),
@@ -17,9 +15,7 @@ const seedData = async () => {
       Class.deleteMany({}),
       Subject.deleteMany({})
     ]);
-    
     console.log('🗑️ Cleared existing data');
-
     // Create Admin User
     const adminPassword = await bcrypt.hash('Sulu@123', 10);
     const admin = await User.create({
@@ -30,9 +26,7 @@ const seedData = async () => {
       password: adminPassword,
       role: 'admin'
     });
-    
     console.log('👤 Created admin user');
-
     // Create Academic Session
     const currentSession = await Session.create({
       name: 'Spring 2024',
@@ -40,17 +34,11 @@ const seedData = async () => {
       start_time: '08:00',
       end_time: '16:00'
     });
-    
     console.log('📅 Created academic session');
-
     console.log('📚 No example subjects created - add through admin dashboard');
-
     console.log('👨‍🏫 No example teachers created - add through admin dashboard');
-
     console.log('🏫 No example classes created - add through admin dashboard');
-
     console.log('👨‍🎓 No example students created - add through admin dashboard');
-
     console.log('\n✅ Database seeding completed successfully!');
     console.log('\n📋 Login Credentials:');
     console.log('🔑 Admin: Sulusulthan230@gmail.com / Sulu@123');
@@ -60,12 +48,16 @@ const seedData = async () => {
     console.log(`   Students: ${await Student.countDocuments()}`);
     console.log(`   Classes: ${await Class.countDocuments()}`);
     console.log(`   Subjects: ${await Subject.countDocuments()}`);
-    
-    process.exit(0);
+    return {
+      users: await User.countDocuments(),
+      teachers: await Teacher.countDocuments(),
+      students: await Student.countDocuments(),
+      classes: await Class.countDocuments(),
+      subjects: await Subject.countDocuments()
+    };
   } catch (error) {
     console.error('❌ Seeding failed:', error);
-    process.exit(1);
+    throw error;
   }
 };
-
-seedData();
+module.exports = { seedData };

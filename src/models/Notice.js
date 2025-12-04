@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const noticeSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -45,10 +44,8 @@ const noticeSchema = new mongoose.Schema({
     ref: 'Department'
   }]
 }, { timestamps: true });
-
 // Indexes
 noticeSchema.index({ createdBy: 1 });
 noticeSchema.index({ isActive: 1, createdAt: -1 });
 noticeSchema.index({ targetAudience: 1 });
-
 module.exports = mongoose.model('Notice', noticeSchema);

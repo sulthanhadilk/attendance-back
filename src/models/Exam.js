@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 // Exam Schema
 const examSchema = new mongoose.Schema({
   name: {
@@ -73,7 +72,6 @@ const examSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Exam Result Schema
 const examResultSchema = new mongoose.Schema({
   exam_id: {
@@ -163,10 +161,8 @@ const examResultSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Compound index for unique result per student per exam
 examResultSchema.index({ exam_id: 1, student_id: 1 }, { unique: true });
-
 // Fee Structure Schema
 const feeStructureSchema = new mongoose.Schema({
   name: {
@@ -230,7 +226,6 @@ const feeStructureSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Fee Payment Schema
 const feePaymentSchema = new mongoose.Schema({
   student_id: {
@@ -307,20 +302,17 @@ const feePaymentSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
 // Indexes
 examSchema.index({ start_date: 1, end_date: 1 });
 examResultSchema.index({ exam_id: 1, percentage: -1 });
 feeStructureSchema.index({ class_id: 1, academic_year: 1 });
 feePaymentSchema.index({ student_id: 1, academic_year: 1 });
-
 // Pre-save middleware for calculating totals
 examResultSchema.pre('save', function(next) {
   // Calculate total marks and percentage
   this.total_marks_obtained = this.subjects.reduce((sum, subject) => sum + (subject.marks_obtained || 0), 0);
   this.total_max_marks = this.subjects.reduce((sum, subject) => sum + (subject.max_marks || 0), 0);
   this.percentage = this.total_max_marks > 0 ? Math.round((this.total_marks_obtained / this.total_max_marks) * 100) : 0;
-  
   // Determine overall grade
   if (this.percentage >= 90) this.overall_grade = 'A+';
   else if (this.percentage >= 80) this.overall_grade = 'A';
@@ -330,14 +322,11 @@ examResultSchema.pre('save', function(next) {
   else if (this.percentage >= 40) this.overall_grade = 'C';
   else if (this.percentage >= 35) this.overall_grade = 'D';
   else this.overall_grade = 'F';
-  
   // Determine status
   this.status = this.percentage >= 35 ? 'pass' : 'fail';
-  
   this.updated_at = Date.now();
   next();
 });
-
 module.exports = {
   Exam: mongoose.model('Exam', examSchema),
   ExamResult: mongoose.model('ExamResult', examResultSchema),

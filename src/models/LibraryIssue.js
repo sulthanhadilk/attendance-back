@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const libraryIssueSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -46,12 +45,10 @@ const libraryIssueSchema = new mongoose.Schema({
     trim: true
   }
 }, { timestamps: true });
-
 // Method to check if book is overdue
 libraryIssueSchema.methods.isOverdue = function() {
   return !this.returnedAt && new Date() > this.dueDate;
 };
-
 // Update status based on dates
 libraryIssueSchema.pre('save', function(next) {
   if (this.returnedAt) {
@@ -63,10 +60,8 @@ libraryIssueSchema.pre('save', function(next) {
   }
   next();
 });
-
 // Indexes
 libraryIssueSchema.index({ studentId: 1, status: 1 });
 libraryIssueSchema.index({ bookId: 1, status: 1 });
 libraryIssueSchema.index({ dueDate: 1 });
-
 module.exports = mongoose.model('LibraryIssue', libraryIssueSchema);

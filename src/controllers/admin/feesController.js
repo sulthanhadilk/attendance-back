@@ -1,6 +1,5 @@
 const { FeeStructure, Student, AuditLog } = require('../../models');
 const { Parser } = require('json2csv');
-
 exports.getStructure = async (req, res) => {
   const { departmentId, batch, semester, type } = req.query;
   const fs = await FeeStructure.findOne({ departmentId, batch, semester, type });

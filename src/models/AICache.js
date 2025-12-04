@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const aiCacheSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -41,19 +40,16 @@ const aiCacheSchema = new mongoose.Schema({
     prayerAttendancePercentage: { type: Number, default: 0 },
     absentDaysCount: { type: Number, default: 0 },
     lateCount: { type: Number, default: 0 },
-    
     // Academic metrics
     averageMarks: { type: Number, default: 0 },
     totalExams: { type: Number, default: 0 },
     failedSubjects: { type: Number, default: 0 },
-    
     // Discipline metrics
     totalFines: { type: Number, default: 0 },
     unpaidFines: { type: Number, default: 0 },
     conductIncidents: { type: Number, default: 0 },
     highSeverityIncidents: { type: Number, default: 0 }
   },
-  // AI-generated recommendations
   recommendations: [{
     type: {
       type: String,
@@ -92,21 +88,18 @@ const aiCacheSchema = new mongoose.Schema({
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
   }
 }, { timestamps: true });
-
 // Indexes for efficient queries
 aiCacheSchema.index({ studentId: 1 });
 aiCacheSchema.index({ riskCategory: 1 });
 aiCacheSchema.index({ overallRiskScore: -1 });
 aiCacheSchema.index({ expiresAt: 1 }); // For TTL cleanup
 aiCacheSchema.index({ calculatedAt: -1 });
-
 // Method to check if cache is stale
 aiCacheSchema.methods.isStale = function(maxAgeHours = 24) {
   const ageMs = Date.now() - this.calculatedAt.getTime();
   const ageHours = ageMs / (1000 * 60 * 60);
   return ageHours > maxAgeHours;
 };
-
 // Method to calculate overall risk
 aiCacheSchema.methods.calculateOverallRisk = function() {
   // Weighted average: attendance 40%, performance 40%, discipline 20%
@@ -115,7 +108,6 @@ aiCacheSchema.methods.calculateOverallRisk = function() {
     (this.performanceRiskScore * 0.4) +
     ((this.analytics.conductIncidents > 0 ? 50 : 0) * 0.2)
   );
-  
   // Determine risk category
   if (this.overallRiskScore >= 75) {
     this.riskCategory = 'critical';
@@ -126,22 +118,17 @@ aiCacheSchema.methods.calculateOverallRisk = function() {
   } else {
     this.riskCategory = 'low';
   }
-  
   return this.overallRiskScore;
 };
-
 // Pre-save hook to update timestamps
 aiCacheSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   this.calculatedAt = new Date();
   this.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  
   // Auto-calculate overall risk if not set
   if (!this.overallRiskScore || this.overallRiskScore === 0) {
     this.calculateOverallRisk();
   }
-  
   next();
 });
-
 module.exports = mongoose.model('AICache', aiCacheSchema);
