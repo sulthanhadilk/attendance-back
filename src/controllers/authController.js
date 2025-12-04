@@ -1,10 +1,18 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User, Student, Teacher, Log } = require('../models');
+const { User, Student, Teacher, Admin, Log } = require('../models');
 
-// Generate JWT token
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '24h' });
+// Generate JWT token with role and user info
+const generateToken = (user) => {
+  return jwt.sign(
+    { 
+      userId: user._id,
+      role: user.role,
+      email: user.email
+    }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: '7d' }
+  );
 };
 
 // Log user activity
@@ -16,50 +24,128 @@ const logActivity = async (userId, action) => {
   }
 };
 
-// Login controller
+/**
+ * Universal Login Controller
+ * Accepts identifier (email, staffCode, admissionNo, roll_no) + password
+ * Auto-detects role and returns appropriate user data
+ */
 const login = async (req, res) => {
   try {
-    const { email, roll_no, password } = req.body;
+    const { identifier, email, roll_no, password } = req.body;
 
-    // Find user by email or roll_no
-    let user;
-    if (email) {
-      user = await User.findOne({ email: email.toLowerCase() });
-    } else if (roll_no) {
-      user = await User.findOne({ roll_no: roll_no.toUpperCase() });
+    // Support both 'identifier' and legacy 'email'/'roll_no' fields
+    const searchValue = identifier || email || roll_no;
+
+    if (!searchValue || !password) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Email/Roll No/Staff Code and password are required' 
+      });
+    }
+
+    let user = null;
+    let profileData = null;
+
+    // Step 1: Try to find User by email or roll_no
+    const searchLower = searchValue.toLowerCase();
+    const searchUpper = searchValue.toUpperCase();
+
+    // Check if it's an email format
+    if (searchValue.includes('@')) {
+      user = await User.findOne({ email: searchLower });
     } else {
-      return res.status(400).json({ msg: 'Email or roll number is required' });
+      // Try roll_no (students)
+      user = await User.findOne({ roll_no: searchUpper });
+      
+      // If not found by roll_no, search in Teacher by staffCode or employee_id
+      if (!user) {
+        const teacher = await Teacher.findOne({
+          $or: [
+            { staffCode: searchUpper },
+            { employee_id: searchUpper }
+          ]
+        }).populate('user_id');
+        
+        if (teacher && teacher.user_id) {
+          user = teacher.user_id;
+          profileData = { teacherId: teacher._id, staffCode: teacher.staffCode };
+        }
+      }
+      
+      // If not found by staffCode, search in Student by admissionNo or admission_number
+      if (!user) {
+        const student = await Student.findOne({
+          $or: [
+            { admissionNo: searchUpper },
+            { admission_number: searchUpper },
+            { roll_number: searchUpper }
+          ]
+        }).populate('user_id');
+        
+        if (student && student.user_id) {
+          user = student.user_id;
+          profileData = { studentId: student._id, admissionNo: student.admissionNo };
+        }
+      }
     }
 
+    // Step 2: Validate user exists
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        msg: 'Invalid credentials. Please check your email/roll number and password.' 
+      });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Step 3: Verify password
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        msg: 'Invalid credentials. Please check your email/roll number and password.' 
+      });
     }
 
-    // Generate token
-    const token = generateToken(user._id);
+    // Step 4: Get role-specific profile data
+    if (!profileData) {
+      if (user.role === 'student') {
+        const student = await Student.findOne({ user_id: user._id });
+        profileData = { studentId: student?._id, admissionNo: student?.admissionNo };
+      } else if (user.role === 'teacher') {
+        const teacher = await Teacher.findOne({ user_id: user._id });
+        profileData = { teacherId: teacher?._id, staffCode: teacher?.staffCode };
+      } else if (user.role === 'admin') {
+        const admin = await Admin.findOne({ user_id: user._id });
+        profileData = { adminId: admin?._id };
+      }
+    }
 
-    // Log activity
-    await logActivity(user._id, `User logged in (${user.role})`);
+    // Step 5: Generate JWT token
+    const token = generateToken(user);
 
+    // Step 6: Log activity
+    await logActivity(user._id, `User logged in (${user.role}) via ${searchValue}`);
+
+    // Step 7: Return response
     res.json({
+      success: true,
       token,
+      role: user.role,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         roll_no: user.roll_no,
-        role: user.role
+        role: user.role,
+        ...profileData
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Server error during login. Please try again.' 
+    });
   }
 };
 
@@ -68,24 +154,48 @@ const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     
-    let profile = { user };
+    let profile = { 
+      success: true,
+      user 
+    };
 
     // Get additional profile data based on role
     if (user.role === 'student') {
       const student = await Student.findOne({ user_id: user._id })
-        .populate('class_id', 'name section year');
+        .populate('class_id', 'name section year')
+        .populate('departmentId', 'name code');
       profile.student = student;
     } else if (user.role === 'teacher') {
       const teacher = await Teacher.findOne({ user_id: user._id })
-        .populate('subjects', 'name type');
+        .populate('subjects.subject_id', 'name type')
+        .populate('departmentId', 'name code');
       profile.teacher = teacher;
+    } else if (user.role === 'admin') {
+      const admin = await Admin.findOne({ user_id: user._id });
+      profile.admin = admin;
     }
 
     res.json(profile);
   } catch (error) {
     console.error('Profile error:', error);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Server error fetching profile' 
+    });
   }
+};
+
+// Logout (token invalidation handled client-side)
+const logout = (req, res) => {
+  // Log activity before clearing session
+  if (req.user) {
+    logActivity(req.user._id, `User logged out (${req.user.role})`);
+  }
+  
+  res.json({ 
+    success: true,
+    msg: 'Logged out successfully' 
+  });
 };
 
 // Status endpoint for deployment testing
@@ -100,6 +210,8 @@ const getStatus = (req, res) => {
 module.exports = {
   login,
   getProfile,
+  logout,
   getStatus,
+  generateToken,
   logActivity
 };

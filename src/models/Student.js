@@ -26,9 +26,42 @@ const studentSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  // Alias for admission_number
+  admissionNo: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true
+  },
   admission_date: {
     type: Date,
     default: Date.now
+  },
+  // Batch info (e.g., "2021-2024")
+  batch: {
+    type: String,
+    trim: true
+  },
+  // Current semester
+  semester: {
+    type: Number,
+    min: 1,
+    max: 8
+  },
+  // Department reference
+  departmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department'
+  },
+  // Course IDs the student is enrolled in
+  courseIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
+  // Photo URL
+  photoUrl: {
+    type: String,
+    trim: true
   },
   guardian_info: {
     father_name: {

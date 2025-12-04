@@ -400,6 +400,12 @@ fineSchema.index({ student_id: 1, is_paid: 1 });
 examResultSchema.index({ exam_id: 1, student_id: 1 });
 
 // Import additional models
+const Admin = require('./Admin');
+const Department = require('./Department');
+const Course = require('./Course');
+const FeeStructure = require('./FeeStructure');
+const FeePayment = require('./FeePayment');
+const AuditLog = require('./AuditLog');
 const PrayerAttendance = require('./PrayerAttendance');
 const HourlyAttendance = require('./HourlyAttendance');
 const StudentConduct = require('./StudentConduct');
@@ -408,12 +414,35 @@ const QuestionBank = require('./QuestionBank');
 const ClassActivity = require('./ClassActivity');
 const Club = require('./Club');
 const LMSLink = require('./LMSLink');
+const LibraryBook = require('./LibraryBook');
+const LibraryIssue = require('./LibraryIssue');
+const Notice = require('./Notice');
+const Event = require('./Event');
+const AICache = require('./AICache');
+
+// Also import models that might be defined separately
+let TeacherModel, StudentModel, ClassModel;
+try {
+  TeacherModel = require('./Teacher');
+} catch (e) {
+  TeacherModel = mongoose.model('Teacher', teacherSchema);
+}
+try {
+  StudentModel = require('./Student');
+} catch (e) {
+  StudentModel = mongoose.model('Student', studentSchema);
+}
+try {
+  ClassModel = require('./Class');
+} catch (e) {
+  ClassModel = mongoose.model('Class', classSchema);
+}
 
 module.exports = {
   User: mongoose.model('User', userSchema),
-  Student: mongoose.model('Student', studentSchema),
-  Teacher: mongoose.model('Teacher', teacherSchema),
-  Class: mongoose.model('Class', classSchema),
+  Student: StudentModel,
+  Teacher: TeacherModel,
+  Class: ClassModel,
   Session: mongoose.model('Session', sessionSchema),
   Subject: mongoose.model('Subject', subjectSchema),
   Attendance: mongoose.model('Attendance', attendanceSchema),
@@ -421,6 +450,19 @@ module.exports = {
   Exam: mongoose.model('Exam', examSchema),
   ExamResult: mongoose.model('ExamResult', examResultSchema),
   Log: mongoose.model('Log', logSchema),
+  
+  // Core models
+  Admin,
+  Department,
+  Course,
+  
+  // Fee models
+  FeeStructure,
+  FeePayment,
+  
+  // Audit
+  AuditLog,
+  
   // Teacher module models
   PrayerAttendance,
   HourlyAttendance,
@@ -429,5 +471,16 @@ module.exports = {
   QuestionBank,
   ClassActivity,
   Club,
-  LMSLink
+  LMSLink,
+  
+  // Library models
+  LibraryBook,
+  LibraryIssue,
+  
+  // Communication models
+  Notice,
+  Event,
+  
+  // AI models
+  AICache
 };

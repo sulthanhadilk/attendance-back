@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 // Enhanced User Schema for comprehensive system
 const userSchema = new mongoose.Schema({
@@ -26,7 +27,8 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
-    minlength: 6
+    minlength: 6,
+    select: false // Don't return password by default in queries
   },
   role: {
     type: String,
@@ -81,11 +83,33 @@ userSchema.index({ email: 1 });
 userSchema.index({ roll_no: 1 });
 userSchema.index({ role: 1 });
 
-// Pre-save middleware to update timestamps
-userSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  next();
+// Pre-save middleware to hash password and update timestamps
+userSchema.pre('save', async function(next) {
+  try {
+    // Only hash password if it's new or modified
+    if (!this.isModified('password')) {
+      this.updated_at = Date.now();
+      return next();
+    }
+
+    // Hash password with salt rounds of 10
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    this.updated_at = Date.now();
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
+
+// Method to compare password with hashed password
+userSchema.methods.comparePassword = async function(passwordAttempt) {
+  try {
+    return await bcrypt.compare(passwordAttempt, this.password);
+  } catch (error) {
+    throw new Error('Password comparison failed: ' + error.message);
+  }
+};
 
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {

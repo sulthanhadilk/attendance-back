@@ -175,6 +175,11 @@ const teacherSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class'
   }],
+  // Alias for easier querying (same as classes)
+  classIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class'
+  }],
 
   schedule: [{
     day: {

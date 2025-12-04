@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const authAdmin = require('../../middleware/authAdmin');
-const authCtrl = require('../../controllers/admin/authController');
 
-// Auth
-router.post('/auth/login', authCtrl.login);
+// Auth is handled by main auth routes
+// All admin routes below require authentication
 router.use(authAdmin);
-router.get('/auth/profile', authCtrl.profile);
 
 // Placeholder sub-routers to implement
 router.use('/users', require('./users'));

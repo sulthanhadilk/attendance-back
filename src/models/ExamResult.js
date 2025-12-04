@@ -15,6 +15,7 @@ const examResultSchema = new mongoose.Schema({
   enteredByTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher' },
   grade: { type: String, enum: ['A', 'B', 'C', 'D', 'F'] },
   percentage: { type: Number },
+  published: { type: Boolean, default: false }, // Controls visibility to students
 }, { timestamps: true });
 
 // Auto-calculate grade and percentage before saving
