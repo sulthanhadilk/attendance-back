@@ -165,7 +165,7 @@ const createTeacher = async (req, res) => {
     const { name, email, phone, subjects, designation, department, joining_date, basic_salary } = req.body;
     if (!name) return res.status(400).json({ msg: 'Name is required for teacher' });
     if (!email) return res.status(400).json({ msg: 'Email is required for teacher' });
-    if (!department) return res.status(400).json({ msg: 'Department is required for teacher' });
+    
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
@@ -189,7 +189,7 @@ const createTeacher = async (req, res) => {
       user_id: user._id,
       employee_id,
       designation: designation || 'Teacher',
-      department,
+      department: department || 'Administration',
       subjects: Array.isArray(subjects) ? subjects : [],
       experience: { current_school_joining_date: joining_date ? new Date(joining_date) : new Date() },
       salary_info: { basic_salary: Number(basic_salary) || 0, allowances: {}, deductions: {} }
