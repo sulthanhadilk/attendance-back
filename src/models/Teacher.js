@@ -42,7 +42,7 @@ const teacherSchema = new mongoose.Schema({
   },
   department: {
     type: String,
-    required: true,
+    required: false,
     enum: [
       'Mathematics',
       'Science',
