@@ -194,7 +194,7 @@ const createTeacher = async (req, res) => {
     const teacher = new Teacher({
       user_id: savedUser._id,
       employee_id,
-      designation: designation || 'Main Usthad',
+      designation: designation || 'Teacher',
       subjects: Array.isArray(subjects) ? subjects : [],
       experience: { current_school_joining_date: joining_date ? new Date(joining_date) : new Date() },
       salary_info: { basic_salary: Number(basic_salary) || 0, allowances: {}, deductions: {} }
