@@ -163,6 +163,8 @@ const createTeacher = async (req, res) => {
   try {
     console.log('Create teacher request body:', req.body);
     const { name, email, phone, subjects, designation, department, joining_date, basic_salary } = req.body;
+    
+    // Validate required fields
     if (!name) return res.status(400).json({ msg: 'Name is required for teacher' });
     if (!email) return res.status(400).json({ msg: 'Email is required for teacher' });
     
@@ -184,7 +186,7 @@ const createTeacher = async (req, res) => {
       role: 'teacher'
     });
     await user.save();
-    // Create teacher profile matching schema requirements
+    // Create teacher profile matching schema requirements (department is optional with default)
     const teacher = new Teacher({
       user_id: user._id,
       employee_id,
