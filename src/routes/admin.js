@@ -74,6 +74,27 @@ router.get('/debug/users', async (req, res) => {
     res.status(500).json({ msg: 'Error fetching users', error: error.message });
   }
 });
+// Debug route - delete all test users (except admins)
+router.delete('/debug/clear-test-data', async (req, res) => {
+  try {
+    const { User, Teacher, Student } = require('../models');
+    // Delete all teachers and their user accounts
+    const teachers = await Teacher.find();
+    for (const teacher of teachers) {
+      await User.findByIdAndDelete(teacher.user_id);
+    }
+    await Teacher.deleteMany();
+    // Delete all students and their user accounts
+    const students = await Student.find();
+    for (const student of students) {
+      await User.findByIdAndDelete(student.user_id);
+    }
+    await Student.deleteMany();
+    res.json({ msg: 'All test data cleared successfully', deletedTeachers: teachers.length, deletedStudents: students.length });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error clearing test data', error: error.message });
+  }
+});
 // Generic User Creation
 router.post('/create-user', createUser);
 // Student Management
