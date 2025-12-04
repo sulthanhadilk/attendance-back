@@ -25,19 +25,12 @@ const teacherSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'Principal',
-      'Vice Principal',
-      'Head of Department',
-      'Senior Teacher',
-      'Teacher',
-      'Assistant Teacher',
-      'Subject Coordinator',
-      'Lab Assistant',
-      'Librarian',
-      'Counselor',
-      'Sports Teacher',
-      'Art Teacher',
-      'Music Teacher'
+      'Main Usthad',
+      'Usthad 1',
+      'Usthad 2',
+      'Usthad 3',
+      'Usthad 4',
+      'Librarian'
     ]
   },
   department: {
