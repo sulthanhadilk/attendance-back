@@ -160,6 +160,7 @@ const getTeachers = async (req, res) => {
   }
 };
 const createTeacher = async (req, res) => {
+  let savedUser = null;
   try {
     console.log('Create teacher request body:', req.body);
     const { name, email, phone, subjects, designation, department, joining_date, basic_salary } = req.body;
@@ -187,7 +188,7 @@ const createTeacher = async (req, res) => {
       password: hashedPassword,
       role: 'teacher'
     });
-    const savedUser = await user.save();
+    savedUser = await user.save();
     console.log('User saved:', savedUser._id);
     
     // Create teacher profile matching schema requirements (department is optional with default)
@@ -213,6 +214,11 @@ const createTeacher = async (req, res) => {
     res.status(201).json({ msg: 'Teacher created successfully', teacher: populatedTeacher });
   } catch (error) {
     console.error('Create teacher error:', error);
+    // If User was created but Teacher creation failed, delete the User to prevent orphaned accounts
+    if (savedUser) {
+      await User.findByIdAndDelete(savedUser._id);
+      console.log('Deleted orphaned user:', savedUser._id);
+    }
     res.status(500).json({ msg: 'Server error', error: error.message });
   }
 };
