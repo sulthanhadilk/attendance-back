@@ -64,14 +64,13 @@ const createStudent = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ msg: 'Student with this email or roll number already exists' });
     }
-    // Create user account
-    const hashedPassword = await bcrypt.hash('123456', 10); // Default password
+    // Create user account - password will be hashed by User model's pre-save hook
     const user = new User({
       name,
       email: email.toLowerCase(),
       roll_no: roll_no.toUpperCase(),
       phone,
-      password: hashedPassword,
+      password: '123456', // Plain text - will be hashed automatically
       role: 'student'
     });
     await user.save();
@@ -178,14 +177,13 @@ const createTeacher = async (req, res) => {
     const employee_id = `TCH${String(teacherCount + 1).padStart(3, '0')}`;
     console.log('Creating teacher with employee_id:', employee_id);
     
-    // Create user account
-    const hashedPassword = await bcrypt.hash('123456', 10);
+    // Create user account - password will be hashed by User model's pre-save hook
     const user = new User({
       name,
       email: email.toLowerCase(),
       roll_no: employee_id,
       phone,
-      password: hashedPassword,
+      password: '123456', // Plain text - will be hashed automatically
       role: 'teacher'
     });
     savedUser = await user.save();
@@ -593,8 +591,7 @@ module.exports = {
           if (!r.name || !r.roll_no) { skipped++; continue; }
           const exists = await User.findOne({ $or: [{ email: r.email?.toLowerCase() }, { roll_no: r.roll_no?.toUpperCase() }] });
           if (exists) { skipped++; continue; }
-          const hashed = await bcrypt.hash('123456', 10);
-          const user = await User.create({ name: r.name, email: r.email?.toLowerCase(), roll_no: r.roll_no?.toUpperCase(), phone: r.phone, password: hashed, role: 'student' });
+          const user = await User.create({ name: r.name, email: r.email?.toLowerCase(), roll_no: r.roll_no?.toUpperCase(), phone: r.phone, password: '123456', role: 'student' });
           await Student.create({ user_id: user._id, class_id: r.class_id, guardian_name: r.guardian_name || 'N/A', guardian_phone: r.guardian_phone || 'N/A' });
           created++;
         } catch (e) {
