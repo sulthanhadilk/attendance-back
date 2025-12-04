@@ -161,7 +161,9 @@ const getTeachers = async (req, res) => {
 };
 const createTeacher = async (req, res) => {
   try {
+    console.log('Create teacher request body:', req.body);
     const { name, email, phone, subjects, designation, department, joining_date, basic_salary } = req.body;
+    if (!name) return res.status(400).json({ msg: 'Name is required for teacher' });
     if (!email) return res.status(400).json({ msg: 'Email is required for teacher' });
     if (!department) return res.status(400).json({ msg: 'Department is required for teacher' });
     // Check if user already exists
@@ -197,7 +199,7 @@ const createTeacher = async (req, res) => {
     res.status(201).json({ msg: 'Teacher created successfully' });
   } catch (error) {
     console.error('Create teacher error:', error);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: 'Server error', error: error.message });
   }
 };
 // Manage Classes
