@@ -54,6 +54,20 @@ app.get('/api/status', (req, res) => {
     database: 'Connected'
   });
 });
+// Debug endpoint (only in development)
+app.get('/api/debug', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ msg: 'Not available in production' });
+  }
+  res.json({
+    nodeEnv: process.env.NODE_ENV,
+    hasJwtSecret: !!process.env.JWT_SECRET,
+    hasMongo: !!process.env.MONGO_URI,
+    hasFrontend: !!process.env.FRONTEND_URL,
+    frontendUrl: process.env.FRONTEND_URL || 'NOT SET',
+    jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+  });
+});
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin')); 
 app.use('/api/teacher', require('./routes/teacher'));

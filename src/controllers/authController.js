@@ -118,10 +118,12 @@ const login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ 
       success: false,
-      msg: 'Server error during login. Please try again.' 
+      msg: 'Server error during login. Please try again.',
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
