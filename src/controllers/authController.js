@@ -42,17 +42,20 @@ const login = async (req, res) => {
     const searchUpper = searchValue.toUpperCase();
     // Check if it's an email format
     if (searchValue.includes('@')) {
-      user = await User.findOne({ email: searchLower });
+      user = await User.findOne({ email: searchLower }).select('+password');
     } else {
       // Try roll_no (students)
-      user = await User.findOne({ roll_no: searchUpper });
+      user = await User.findOne({ roll_no: searchUpper }).select('+password');
       if (!user) {
         const teacher = await Teacher.findOne({
           $or: [
             { staffCode: searchUpper },
             { employee_id: searchUpper }
           ]
-        }).populate('user_id');
+        }).populate({
+          path: 'user_id',
+          select: '+password'
+        });
         if (teacher && teacher.user_id) {
           user = teacher.user_id;
           profileData = { teacherId: teacher._id, staffCode: teacher.staffCode };
@@ -65,7 +68,10 @@ const login = async (req, res) => {
             { admission_number: searchUpper },
             { roll_number: searchUpper }
           ]
-        }).populate('user_id');
+        }).populate({
+          path: 'user_id',
+          select: '+password'
+        });
         if (student && student.user_id) {
           user = student.user_id;
           profileData = { studentId: student._id, admissionNo: student.admissionNo };
