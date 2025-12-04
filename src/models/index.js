@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 // User Schema (for authentication)
 const userSchema = new mongoose.Schema({
   name: {
@@ -40,6 +41,27 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Method to compare password with hashed password
+userSchema.methods.comparePassword = async function(passwordAttempt) {
+  try {
+    return await bcrypt.compare(passwordAttempt, this.password);
+  } catch (error) {
+    throw new Error('Password comparison failed: ' + error.message);
+  }
+};
 // Student Schema
 const studentSchema = new mongoose.Schema({
   user_id: {
