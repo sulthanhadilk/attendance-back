@@ -17,8 +17,9 @@ app.use(cors({
     const allowed = [FRONTEND_URL].filter(Boolean);
     const vercel = /^https:\/\/.*\.vercel\.app$/;
     const render = /^https:\/\/.*\.onrender\.com$/;
-    const isAllowed = allowed.includes(origin) || vercel.test(origin) || render.test(origin);
-    console.log(`CORS ${isAllowed ? 'ALLOW' : 'BLOCK'}: ${origin}`);
+    const localhost = /^http:\/\/localhost(:\d+)?$/;
+    const isAllowed = allowed.includes(origin) || vercel.test(origin) || render.test(origin) || localhost.test(origin);
+    console.log(`CORS ${isAllowed ? 'ALLOW' : 'BLOCK'}: ${origin} (FRONTEND_URL=${FRONTEND_URL})`);
     return isAllowed ? callback(null, true) : callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
