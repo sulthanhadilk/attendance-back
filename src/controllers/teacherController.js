@@ -67,23 +67,49 @@ async function teacherLogin(req, res) {
 // DASHBOARD
 async function getDashboardData(req, res) {
   try {
-    const teacher = await getTeacherByUser(req.user._id).populate('classes');
+    const teacher = await Teacher.findOne({ user_id: req.user._id })
+      .populate('subjects.subject_id', 'name')
+      .populate('subjects.classes', 'name section room')
+      .populate('class_teacher.class_id', 'name section');
+    
     if (!teacher) return res.status(404).json({ msg: 'Teacher profile not found' });
+    
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    // classes assigned
-    const classIds = (teacher.classes || []).map(c => c._id ? c._id : c);
+    
+    // Extract all class IDs from subjects array
+    const classIds = [];
+    if (teacher.subjects && Array.isArray(teacher.subjects)) {
+      teacher.subjects.forEach(sub => {
+        if (sub.classes && Array.isArray(sub.classes)) {
+          sub.classes.forEach(cls => {
+            const clsId = cls._id || cls;
+            if (clsId && !classIds.find(id => id.toString() === clsId.toString())) {
+              classIds.push(clsId);
+            }
+          });
+        }
+      });
+    }
+    // Add class_teacher class if exists
+    if (teacher.class_teacher?.class_id) {
+      const ctId = teacher.class_teacher.class_id._id || teacher.class_teacher.class_id;
+      if (!classIds.find(id => id.toString() === ctId.toString())) {
+        classIds.push(ctId);
+      }
+    }
+    
     // compute attendance aggregates for today across teacher's classes
-    const attendanceMatch = { classId: { $in: classIds } , date: { $gte: startOfDay, $lt: endOfDay } };
+    const attendanceMatch = classIds.length > 0 ? { classId: { $in: classIds }, date: { $gte: startOfDay, $lt: endOfDay } } : { _id: null };
     const [classCount, attendanceAgg, pendingFines, upcomingExams, recentNotifications, recentConduct] = await Promise.all([
-      Class.countDocuments({ _id: { $in: classIds } }),
-      HourlyAttendance.aggregate([
+      classIds.length,
+      classIds.length > 0 ? HourlyAttendance.aggregate([
         { $match: attendanceMatch },
         { $group: { _id: null, total: { $sum: 1 }, present: { $sum: { $cond: [{ $eq: ['$status', 'present'] }, 1, 0] } } } }
-      ]),
+      ]) : Promise.resolve([]),
       Fine.countDocuments({ teacher_id: teacher._id, status: 'unpaid' }),
-      Exam.find({ class_id: { $in: classIds }, date: { $gte: today } }).sort({ date: 1 }).limit(5),
+      classIds.length > 0 ? Exam.find({ class_id: { $in: classIds }, date: { $gte: today } }).sort({ date: 1 }).limit(5) : Promise.resolve([]),
       TeacherNotification.find({ teacherId: teacher._id }).sort({ createdAt: -1 }).limit(5),
       StudentConduct.find({ teacherId: teacher._id }).sort({ createdAt: -1 }).limit(5)
     ]);
@@ -117,15 +143,16 @@ async function getDashboardData(req, res) {
         name: req.user.name,
         staffCode: teacher.staffCode || teacher.employee_id,
         designation: teacher.designation,
-        department: teacher.department,
+        department: teacher.department || 'N/A',
         photoUrl: teacher.photoUrl || req.user.profile_picture || null
       },
-      classes: teacher.classes,
+      classes: classIds,
       todaysTimetable: timetable,
       stats: {
         classesAssigned: classCount,
         todayAttendancePercent,
-        pendingFinesCount: pendingFines,
+        todayMarkedHours: total,
+        pendingFines: pendingFines,
         upcomingExams: upcomingExams.length
       },
       upcomingExams,
@@ -134,7 +161,7 @@ async function getDashboardData(req, res) {
     });
   } catch (err) {
     console.error('getDashboardData error:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 }
 // CLASSES
