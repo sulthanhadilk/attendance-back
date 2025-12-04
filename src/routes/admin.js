@@ -64,6 +64,16 @@ router.use(auth);
 router.use(adminOnly);
 // Dashboard
 router.get('/dashboard', getDashboardStats);
+// Debug route - list all users
+router.get('/debug/users', async (req, res) => {
+  try {
+    const { User } = require('../models');
+    const users = await User.find({}, 'name email role roll_no').limit(50);
+    res.json({ count: users.length, users });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error fetching users', error: error.message });
+  }
+});
 // Generic User Creation
 router.post('/create-user', createUser);
 // Student Management
