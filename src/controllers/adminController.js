@@ -197,8 +197,14 @@ const createTeacher = async (req, res) => {
       salary_info: { basic_salary: Number(basic_salary) || 0, allowances: {}, deductions: {} }
     });
     await teacher.save();
+    
+    // Populate user_id to return complete teacher data
+    const populatedTeacher = await Teacher.findById(teacher._id)
+      .populate('user_id', 'name email phone')
+      .populate('subjects', 'name type');
+    
     await logActivity(req.user._id, `Created new teacher: ${name} (${employee_id})`);
-    res.status(201).json({ msg: 'Teacher created successfully' });
+    res.status(201).json({ msg: 'Teacher created successfully', teacher: populatedTeacher });
   } catch (error) {
     console.error('Create teacher error:', error);
     res.status(500).json({ msg: 'Server error', error: error.message });
