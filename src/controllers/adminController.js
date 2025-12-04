@@ -175,6 +175,8 @@ const createTeacher = async (req, res) => {
     }
     const teacherCount = await Teacher.countDocuments();
     const employee_id = `TCH${String(teacherCount + 1).padStart(3, '0')}`;
+    console.log('Creating teacher with employee_id:', employee_id);
+    
     // Create user account
     const hashedPassword = await bcrypt.hash('123456', 10);
     const user = new User({
@@ -185,10 +187,12 @@ const createTeacher = async (req, res) => {
       password: hashedPassword,
       role: 'teacher'
     });
-    await user.save();
+    const savedUser = await user.save();
+    console.log('User saved:', savedUser._id);
+    
     // Create teacher profile matching schema requirements (department is optional with default)
     const teacher = new Teacher({
-      user_id: user._id,
+      user_id: savedUser._id,
       employee_id,
       designation: designation || 'Teacher',
       department: department || 'Administration',
@@ -196,12 +200,15 @@ const createTeacher = async (req, res) => {
       experience: { current_school_joining_date: joining_date ? new Date(joining_date) : new Date() },
       salary_info: { basic_salary: Number(basic_salary) || 0, allowances: {}, deductions: {} }
     });
-    await teacher.save();
+    const savedTeacher = await teacher.save();
+    console.log('Teacher saved:', savedTeacher._id);
     
     // Populate user_id to return complete teacher data
-    const populatedTeacher = await Teacher.findById(teacher._id)
+    const populatedTeacher = await Teacher.findById(savedTeacher._id)
       .populate('user_id', 'name email phone')
       .populate('subjects', 'name type');
+    
+    console.log('Populated teacher:', populatedTeacher);
     
     await logActivity(req.user._id, `Created new teacher: ${name} (${employee_id})`);
     res.status(201).json({ msg: 'Teacher created successfully', teacher: populatedTeacher });
